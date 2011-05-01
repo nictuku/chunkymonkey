@@ -38,6 +38,9 @@ type IPlayer interface {
 
 	SendSpawn(writer io.Writer) (err os.Error)
 	IsWithin(p1, p2 *ChunkXz) bool
+
+	// XXX
+	GetPosition() *AbsXyz
 }
 
 type IChunk interface {

@@ -83,6 +83,12 @@ func (player *Player) GetEntity() *Entity {
 	return &player.Entity
 }
 
+// XXX
+func (player *Player) GetPosition() *AbsXyz {
+	return &player.position
+}
+
+
 func (player *Player) LockedGetChunkPosition() *ChunkXz {
 	player.lock.Lock()
 	defer player.lock.Unlock()

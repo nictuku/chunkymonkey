@@ -54,6 +54,10 @@ type EntityId int32
 // The type of mob
 type EntityMobType byte
 
+const (
+	MobTypeIdCreeper = EntityMobType(50)
+)
+
 type EntityStatus byte
 
 type EntityAnimation byte

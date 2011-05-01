@@ -14,6 +14,7 @@ import (
 	"chunkymonkey/gamerules"
 	. "chunkymonkey/interfaces"
 	"chunkymonkey/itemtype"
+	"chunkymonkey/mob"
 	"chunkymonkey/player"
 	"chunkymonkey/proto"
 	"chunkymonkey/record"
@@ -179,6 +180,22 @@ func (game *Game) AddPlayer(newPlayer IPlayer) {
 			})
 		}
 	}
+
+	// Only for tests.
+	game.SendChatMessage("trying to spawn a mob too!")
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	go func() {
+		// Hack to delay mob spawn until login is finished.
+		time.Sleep(5e9)
+		m := mob.NewMob(&mob.Creeper.Id, newPlayer.GetPosition())
+		game.AddEntity(m.GetEntity())
+		buf := &bytes.Buffer{}
+		if err := m.SendSpawn(buf); err != nil {
+			log.Println(err)
+			return
+		}
+		newPlayer.TransmitPacket(buf.Bytes())
+	}()
 }
 
 // Remove a player from the game
