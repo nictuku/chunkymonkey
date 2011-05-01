@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	expVarMobSpawnCount   *expvar.Int
+	expVarMobSpawnCount *expvar.Int
 )
 
 func init() {
