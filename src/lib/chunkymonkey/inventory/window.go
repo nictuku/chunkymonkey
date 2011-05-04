@@ -12,9 +12,12 @@ import (
 
 // IWindow is the interface on to types that represent a view on to multiple
 // inventories.
-// TODO remove this type if not used in the end.
 type IWindow interface {
+	GetWindowId() WindowId
 	Click(slotId SlotId, cursor *slot.Slot, rightClick bool, shiftClick bool) (accepted bool)
+	WriteWindowOpen(writer io.Writer) (err os.Error)
+	WriteWindowItems(writer io.Writer) (err os.Error)
+	Finalize(sendClosePacket bool)
 }
 
 // IWindowViewer is the required interface of types that wish to receive packet
@@ -83,12 +86,20 @@ func (w *Window) Init(windowId WindowId, invTypeId InvTypeId, viewer IWindowView
 	return
 }
 
+func (w *Window) GetWindowId() WindowId {
+	return w.windowId
+}
+
 // Finalize cleans up, subscriber information so that the window can be
 // properly garbage collected. This should be called when the window is thrown
 // away.
-func (w *Window) Finalize() {
+func (w *Window) Finalize(sendClosePacket bool) {
 	for index := range w.views {
 		w.views[index].Finalize()
+	}
+	if sendClosePacket {
+		buf := &bytes.Buffer{}
+		proto.WriteWindowClose(buf, w.windowId)
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"chunkymonkey/entity"
 	"chunkymonkey/gamerules"
 	"chunkymonkey/item"
+	"chunkymonkey/itemtype"
 	"chunkymonkey/slot"
 	. "chunkymonkey/types"
 )
@@ -31,16 +32,19 @@ type IPlayer interface {
 	LockedGetChunkPosition() *ChunkXz
 	TransmitPacket(packet []byte)
 	OfferItem(item *slot.Slot)
+	OpenWindow(invTypeId InvTypeId)
 
 	Enqueue(f func(IPlayer))
+	WithLock(f func(IPlayer))
 
-	// Everything below must be called from within Enqueue
+	// Everything below must be called from within Enqueue or WithLock.
 
 	SendSpawn(writer io.Writer) (err os.Error)
 	IsWithin(p1, p2 *ChunkXz) bool
-
 	// XXX
 	GetPosition() *AbsXyz
+	GetHeldItemType() *itemtype.ItemType
+	TakeOneHeldItem(into *slot.Slot)
 }
 
 type IChunk interface {
@@ -61,8 +65,8 @@ type IChunk interface {
 	// Tells the chunk to take posession of the item.
 	TransferItem(item *item.Item)
 	GetBlock(subLoc *SubChunkXyz) (blockType BlockId, ok bool)
-	DigBlock(subLoc *SubChunkXyz, digStatus DigStatus) (ok bool)
-	PlaceBlock(againstLoc *BlockXyz, againstFace Face, blockId BlockId) (ok bool)
+	PlayerBlockHit(player IPlayer, subLoc *SubChunkXyz, digStatus DigStatus) (ok bool)
+	PlayerBlockInteract(player IPlayer, target *BlockXyz, againstFace Face)
 
 	// Register subscribers to receive information about the chunk. When added,
 	// a subscriber will immediately receive complete chunk information via

@@ -11,6 +11,7 @@ type BlockDropItem struct {
 	DroppedItem ItemTypeId
 	Probability byte // Probabilities specified as a percentage
 	Count       ItemCount
+	CopyData    bool
 }
 
 func makeStandardAspect() (aspect IBlockAspect) {
@@ -30,7 +31,7 @@ func (aspect *StandardAspect) Name() string {
 	return "Standard"
 }
 
-func (aspect *StandardAspect) Dig(chunk IChunkBlock, blockLoc *BlockXyz, digStatus DigStatus) (destroyed bool) {
+func (aspect *StandardAspect) Hit(chunk IChunkBlock, blockLoc *BlockXyz, blockData byte, digStatus DigStatus) (destroyed bool) {
 	if aspect.BreakOn != digStatus {
 		return
 	}
@@ -54,6 +55,13 @@ func (aspect *StandardAspect) Dig(chunk IChunkBlock, blockLoc *BlockXyz, digStat
 					break
 				}
 
+				var itemData ItemData
+				if dropItem.CopyData {
+					itemData = ItemData(blockData)
+				} else {
+					itemData = 0
+				}
+
 				for i := dropItem.Count; i > 0; i-- {
 					position := blockLoc.ToAbsXyz()
 					position.X += AbsCoord(blockItemSpawnFromEdge + rand.Float64()*(1-2*blockItemSpawnFromEdge))
@@ -61,7 +69,7 @@ func (aspect *StandardAspect) Dig(chunk IChunkBlock, blockLoc *BlockXyz, digStat
 					position.Z += AbsCoord(blockItemSpawnFromEdge + rand.Float64()*(1-2*blockItemSpawnFromEdge))
 					chunk.AddItem(
 						item.NewItem(
-							itemType, 1,
+							itemType, 1, itemData,
 							position,
 							&AbsVelocity{0, 0, 0}))
 				}
@@ -72,4 +80,7 @@ func (aspect *StandardAspect) Dig(chunk IChunkBlock, blockLoc *BlockXyz, digStat
 	}
 
 	return
+}
+
+func (aspect *StandardAspect) Interact(player IBlockPlayer) {
 }

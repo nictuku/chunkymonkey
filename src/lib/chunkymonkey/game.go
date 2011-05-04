@@ -29,7 +29,7 @@ type Game struct {
 	entityManager EntityManager
 	players       map[EntityId]IPlayer
 	time          TimeOfDay
-	gameRules     *gamerules.GameRules
+	gameRules     gamerules.GameRules
 	itemTypes     itemtype.ItemTypeMap
 	rand          *rand.Rand
 	serverId      string
@@ -42,7 +42,7 @@ func NewGame(worldPath string, gameRules *gamerules.GameRules) (game *Game, err 
 	game = &Game{
 		mainQueue:  make(chan func(IGame), 256),
 		players:    make(map[EntityId]IPlayer),
-		gameRules:  gameRules,
+		gameRules:  *gameRules,
 		rand:       rand.New(rand.NewSource(time.UTC().Seconds())),
 		worldStore: worldStore,
 	}
@@ -129,7 +129,7 @@ func (game *Game) GetStartPosition() *AbsXyz {
 }
 
 func (game *Game) GetGameRules() *gamerules.GameRules {
-	return game.gameRules
+	return &game.gameRules
 }
 
 func (game *Game) GetChunkManager() IChunkManager {

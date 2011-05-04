@@ -67,7 +67,8 @@ func makeItemType(id ItemTypeId) *itemtype.ItemType {
 	}
 }
 
-func TestSlot_Add(t *testing.T) {
+// Tests cases that are common to both Slot.Add and Slot.AddWhole.
+func TestSlot_Add_Common(t *testing.T) {
 	apple := makeItemType(1)
 	orange := makeItemType(2)
 
@@ -101,12 +102,6 @@ func TestSlot_Add(t *testing.T) {
 			"0 + 64 => 64 + 0",
 			Slot{nil, 0, 0}, Slot{apple, 64, 0},
 			Slot{apple, 64, 0}, Slot{nil, 0, 0},
-			true,
-		},
-		{
-			"32 + 33 => 64 + 1 (hitting max count)",
-			Slot{apple, 32, 0}, Slot{apple, 33, 0},
-			Slot{apple, 64, 0}, Slot{apple, 1, 0},
 			true,
 		},
 		{
@@ -148,10 +143,59 @@ func TestSlot_Add(t *testing.T) {
 		},
 	}
 
+	t.Log("Testing Add")
 	runTests(
 		t, tests,
 		func(a, b *Slot) bool {
 			return a.Add(b)
+		},
+	)
+
+	t.Log("Testing AddWhole")
+	runTests(
+		t, tests,
+		func(a, b *Slot) bool {
+			return a.AddWhole(b)
+		},
+	)
+}
+
+func TestSlot_Add(t *testing.T) {
+	apple := makeItemType(1)
+
+	tests := []slotTest{
+		{
+			"32 + 33 => 64 + 1 (hitting max count)",
+			Slot{apple, 32, 0}, Slot{apple, 33, 0},
+			Slot{apple, 64, 0}, Slot{apple, 1, 0},
+			true,
+		},
+	}
+
+	runTests(
+		t, tests,
+		func(a, b *Slot) bool {
+			return a.Add(b)
+		},
+	)
+}
+
+func TestSlot_AddWhole(t *testing.T) {
+	apple := makeItemType(1)
+
+	tests := []slotTest{
+		{
+			"32 + 33 => 32 + 33 (hitting max count)",
+			Slot{apple, 32, 0}, Slot{apple, 33, 0},
+			Slot{apple, 32, 0}, Slot{apple, 33, 0},
+			false,
+		},
+	}
+
+	runTests(
+		t, tests,
+		func(a, b *Slot) bool {
+			return a.AddWhole(b)
 		},
 	)
 }

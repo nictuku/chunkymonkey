@@ -22,6 +22,31 @@ an early stage, and the official toolchain for it yet lacks many
 optimizations - so some things should get faster over time anyway.
 
 
+Implementation notes
+--------------------
+
+Read this section for some useful points on how the current implementation
+works. Note that things could change and this section could become out of date
+quite easily, so don't read things here as gospel if the code is telling a
+different story (although please do either change this doc to reflect this or
+raise an issue).
+
+Currently the system uses goroutines for a few different purposes:
+
+*   1 goroutine for the Game mainloop (reads/writes to the ChunkManager also go
+    through this goroutine),
+*   3 goroutines per Player,
+*   1 goroutine per Chunk.
+
+Currently communication between them takes the form of using the Enqueue method
+on the object in question to run a function within the goroutine context.
+Additionally there is a lock on the player object that allows running either in
+a calling goroutine or in the player's own goroutine. This configuration will
+likely not last forever, particularly when it comes to the point of
+distributing the server components, where some of these communication methods
+might take the form of networked RPCs.
+
+
 Intent
 ------
 
@@ -85,6 +110,7 @@ following:
 *   Which server has responsibility for simulating mobs.
 *   Which server performs authentication/blocks/priviledge decisions.
 *   Firm coding standards.
+*   Modding support.
 
 
 Server process considerations

@@ -190,6 +190,8 @@ type WindowId int8
 const (
 	WindowIdCursor    = WindowId(-1)
 	WindowIdInventory = WindowId(0)
+	WindowIdFreeMin   = WindowId(1)
+	WindowIdFreeMax   = WindowId(127)
 )
 
 type InvTypeId int8

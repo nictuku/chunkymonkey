@@ -19,13 +19,14 @@ type Item struct {
 	orientation OrientationBytes
 }
 
-func NewItem(itemType *itemtype.ItemType, count ItemCount, position *AbsXyz, velocity *AbsVelocity) (item *Item) {
+func NewItem(itemType *itemtype.ItemType, count ItemCount, data ItemData, position *AbsXyz, velocity *AbsVelocity) (item *Item) {
 	item = &Item{
 		// TODO proper orientation
 		orientation: OrientationBytes{0, 0, 0},
 	}
 	item.Slot.ItemType = itemType
 	item.Slot.Count = count
+	item.Slot.Data = data
 	item.physObj.Init(position, velocity)
 	return
 }

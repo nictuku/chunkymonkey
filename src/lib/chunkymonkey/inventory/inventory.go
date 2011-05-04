@@ -68,8 +68,30 @@ func (inv *Inventory) StandardClick(slotId SlotId, cursor *slot.Slot, rightClick
 		}
 	}
 
-	// We send slot updates in case we have custom max counts that differ
-	// from the client's idea.
+	// We send slot updates in case we have custom max counts that differ from
+	// the client's idea.
+	inv.slotUpdate(clickedSlot, slotId)
+
+	return
+}
+
+// TakeOnlyClick only allows items to be taken from the slot, and it only
+// allows the *whole* stack to be taken, otherwise no items are taken at all.
+func (inv *Inventory) TakeOnlyClick(slotId SlotId, cursor *slot.Slot, rightClick, shiftClick bool) (accepted bool) {
+	inv.lock.Lock()
+	defer inv.lock.Unlock()
+
+	if slotId < 0 || int(slotId) > len(inv.slots) {
+		return false
+	}
+
+	clickedSlot := &inv.slots[slotId]
+
+	// Apply the change.
+	accepted = cursor.AddWhole(clickedSlot)
+
+	// We send slot updates in case we have custom max counts that differ from
+	// the client's idea.
 	inv.slotUpdate(clickedSlot, slotId)
 
 	return

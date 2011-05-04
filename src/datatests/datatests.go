@@ -4,7 +4,7 @@ package main
 
 import (
 	"flag"
-	"log"
+	"fmt"
 	"os"
 
 	"chunkymonkey/block"
@@ -29,25 +29,23 @@ func main() {
 
 	blockTypes, err := block.LoadBlocksFromFile(*blockDefs)
 	if err != nil {
-		log.Print("Error loading block definitions: ", err)
+		fmt.Fprintf(os.Stdout, "Error loading block definitions: %v\n", err)
 		os.Exit(1)
 	}
 
 	itemTypes, err := itemtype.LoadItemTypesFromFile(*itemDefs)
 	if err != nil {
-		log.Print("Error loading item definitions: ", err)
+		fmt.Fprintf(os.Stdout, "Error loading item definitions: %v\n", err)
 		os.Exit(1)
 	}
 
 	blockTypes.CreateBlockItemTypes(itemTypes)
 
-	recipes, err := recipe.LoadRecipesFromFile(*recipeDefs, itemTypes)
+	_, err = recipe.LoadRecipesFromFile(*recipeDefs, itemTypes)
 	if err != nil {
-		log.Print("Error loading recipe definitions: ", err)
+		fmt.Fprintf(os.Stdout, "Error loading recipe definitions: %v\n", err)
 		os.Exit(1)
 	}
 
-	log.Printf(
-		"Successfully loaded %d block types, %d item types and %d recipes.",
-		len(blockTypes), len(itemTypes), len(recipes.Recipes))
+	fmt.Printf("PASS datatests\n")
 }

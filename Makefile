@@ -16,6 +16,7 @@ fmt:
 	@gd -q -fmt --tab src
 
 test: datatests
+	@-rm -r .test_obj/tmp*
 	@mkdir -p .test_obj
 	@gd -q -L .test_obj -t src/lib
 	@./datatests

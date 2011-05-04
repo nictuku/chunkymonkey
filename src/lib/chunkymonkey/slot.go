@@ -95,6 +95,25 @@ func (s *Slot) Add(src *Slot) (changed bool) {
 	return
 }
 
+// AddWhole is similar to Add, but with the exception that if not all the items
+// can be transferred, then none are transferred at all.
+// Returns true if slots changed as a result.
+func (s *Slot) AddWhole(src *Slot) (changed bool) {
+	// NOTE: This code assumes that 2*ItemType.MaxStack will not overflow the
+	// ItemCount type.
+	if src.ItemType == nil {
+		return
+	}
+
+	maxStack := src.ItemType.MaxStack
+
+	if src.Count+s.Count > maxStack {
+		return
+	}
+
+	return s.Add(src)
+}
+
 // Swaps the contents of the slots.
 // Returns true if slots changed as a result.
 func (s *Slot) Swap(src *Slot) (changed bool) {
@@ -165,16 +184,21 @@ func (s *Slot) AddOne(src *Slot) (changed bool) {
 	}
 
 	changed = true
-	s.Count++
-	src.Count--
-
+	s.setCount(s.Count + 1)
 	s.ItemType = src.ItemType
 	s.Data = src.Data
+	src.setCount(src.Count - 1)
 
-	if src.Count == 0 {
-		src.ItemType = nil
-		src.Data = 0
+	return
+}
+
+// Decrement destroys one item count from the subject slot.
+func (s *Slot) Decrement() (changed bool) {
+	if s.Count <= 0 {
+		return
 	}
 
+	s.setCount(s.Count - 1)
+	changed = true
 	return
 }

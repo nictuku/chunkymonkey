@@ -8,10 +8,17 @@ import (
 	. "chunkymonkey/types"
 )
 
+// IBlockPlayer defines the interactions that a block aspect may have upon a
+// player.
+type IBlockPlayer interface {
+	OpenWindow(invTypeId InvTypeId)
+}
+
 // Defines the behaviour of a block.
 type IBlockAspect interface {
 	Name() string
-	Dig(chunk IChunkBlock, blockLoc *BlockXyz, digStatus DigStatus) (destroyed bool)
+	Hit(chunk IChunkBlock, blockLoc *BlockXyz, blockData byte, digStatus DigStatus) (destroyed bool)
+	Interact(player IBlockPlayer)
 }
 
 type BlockAttrs struct {

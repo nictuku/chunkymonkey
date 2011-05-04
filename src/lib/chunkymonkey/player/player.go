@@ -10,9 +10,10 @@ import (
 	"os"
 	"sync"
 
-	. "chunkymonkey/entity"
+	"chunkymonkey/entity"
 	. "chunkymonkey/interfaces"
 	"chunkymonkey/inventory"
+	"chunkymonkey/itemtype"
 	"chunkymonkey/proto"
 	"chunkymonkey/slot"
 	. "chunkymonkey/types"
@@ -31,7 +32,7 @@ func init() {
 }
 
 type Player struct {
-	Entity
+	entity.Entity
 	game      IGame
 	conn      net.Conn
 	name      string
@@ -39,8 +40,10 @@ type Player struct {
 	look      LookDegrees
 	chunkSubs chunkSubscriptions
 
-	cursor    slot.Slot // Item being moved by mouse cursor.
-	inventory inventory.PlayerInventory
+	cursor       slot.Slot // Item being moved by mouse cursor.
+	inventory    inventory.PlayerInventory
+	curWindow    inventory.IWindow
+	nextWindowId WindowId
 
 	mainQueue chan func(IPlayer)
 	txQueue   chan []byte
@@ -49,11 +52,15 @@ type Player struct {
 
 func StartPlayer(game IGame, conn net.Conn, name string) {
 	player := &Player{
-		game:      game,
-		conn:      conn,
-		name:      name,
-		position:  *game.GetStartPosition(),
-		look:      LookDegrees{0, 0},
+		game:     game,
+		conn:     conn,
+		name:     name,
+		position: *game.GetStartPosition(),
+		look:     LookDegrees{0, 0},
+
+		curWindow:    nil,
+		nextWindowId: WindowIdFreeMin,
+
 		mainQueue: make(chan func(IPlayer), 128),
 		txQueue:   make(chan []byte, 128),
 	}
@@ -61,7 +68,7 @@ func StartPlayer(game IGame, conn net.Conn, name string) {
 	player.chunkSubs.Init(player)
 
 	player.cursor.Init()
-	player.inventory.Init(player.EntityId, player)
+	player.inventory.Init(player.EntityId, player, game.GetGameRules())
 
 	game.Enqueue(func(game IGame) {
 		game.AddPlayer(player)
@@ -79,7 +86,7 @@ func (player *Player) GetEntityId() EntityId {
 	return player.EntityId
 }
 
-func (player *Player) GetEntity() *Entity {
+func (player *Player) GetEntity() *entity.Entity {
 	return &player.Entity
 }
 
@@ -119,6 +126,15 @@ func (player *Player) SendSpawn(writer io.Writer) (err os.Error) {
 		return
 	}
 	return player.inventory.SendFullEquipmentUpdate(writer)
+}
+
+func (player *Player) GetHeldItemType() *itemtype.ItemType {
+	slot, _ := player.inventory.HeldItem()
+	return slot.ItemType
+}
+
+func (player *Player) TakeOneHeldItem(into *slot.Slot) {
+	player.inventory.TakeOneHeldItem(into)
 }
 
 func (player *Player) start() {
@@ -216,7 +232,7 @@ func (player *Player) PacketPlayerBlockHit(status DigStatus, blockLoc *BlockXyz,
 			}
 
 			chunk.Enqueue(func(chunk IChunk) {
-				chunk.DigBlock(subLoc, status)
+				chunk.PlayerBlockHit(player, subLoc, status)
 			})
 		})
 	} else {
@@ -226,59 +242,22 @@ func (player *Player) PacketPlayerBlockHit(status DigStatus, blockLoc *BlockXyz,
 
 func (player *Player) PacketPlayerBlockInteract(itemId ItemTypeId, blockLoc *BlockXyz, face Face, amount ItemCount, uses ItemData) {
 	if face < FaceMinValid || face > FaceMaxValid {
+		// TODO sometimes FaceNull means something. This case should be covered.
 		log.Printf("Player/PacketPlayerBlockInteract: invalid face %d", face)
 		return
 	}
 
-	// The position to put the block at.
-	dx, dy, dz := face.GetDxyz()
-	placeAtLoc := &BlockXyz{
-		blockLoc.X + dx,
-		blockLoc.Y + dy,
-		blockLoc.Z + dz,
-	}
-	placeChunkLoc, _ := placeAtLoc.ToChunkLocal()
-
-	player.lock.Lock()
-	defer player.lock.Unlock()
-
-	heldSlot, heldSlotId := player.inventory.HeldItem()
-
-	// Make sure that it's a valid-looking block item.
-	itemType := heldSlot.ItemType
-	if itemType == nil || itemType.Id < ItemTypeId(BlockIdMin) || itemType.Id > ItemTypeId(BlockIdMax) {
-		log.Print("Player/PacketPlayerBlockInteract: no or non-block item held")
-		return
-	}
-
-	// Take an item from the "held" slot.
-	tmpSlot := &slot.Slot{nil, 0, 0}
-	tmpSlot.AddOne(heldSlot)
-
-	buf := &bytes.Buffer{}
-	heldSlot.SendUpdate(buf, WindowIdInventory, heldSlotId)
-	player.TransmitPacket(buf.Bytes())
+	placeChunkLoc, _ := blockLoc.ToChunkLocal()
 
 	player.game.Enqueue(func(game IGame) {
 		chunk := game.GetChunkManager().Get(placeChunkLoc)
 
 		if chunk == nil {
-			// Return item to player
-			// Note that this can technically fail, in which case the item vanishes.
-			log.Print("Player/PacketPlayerBlockInteract: chunk not found")
-			player.OfferItem(tmpSlot)
 			return
 		}
 
 		chunk.Enqueue(func(chunk IChunk) {
-			// Note that we tell the chunk that the block is to get placed
-			// *into* to place it (rather than the block it's being attached
-			// to). The chunk itself determines if this will work.
-			if !chunk.PlaceBlock(blockLoc, face, BlockId(tmpSlot.ItemType.Id)) {
-				// Return item to player
-				// Note that this can technically fail, in which case the item vanishes.
-				player.OfferItem(tmpSlot)
-			}
+			chunk.PlayerBlockInteract(player, blockLoc, face)
 		})
 	})
 }
@@ -296,22 +275,30 @@ func (player *Player) PacketUnknown0x1b(field1, field2 float32, field3, field4 b
 }
 
 func (player *Player) PacketWindowClose(windowId WindowId) {
+	player.lock.Lock()
+	defer player.lock.Unlock()
+
+	if player.curWindow != nil && player.curWindow.GetWindowId() == windowId {
+		player.curWindow.Finalize(false)
+	}
 }
 
 func (player *Player) PacketWindowClick(windowId WindowId, slotId SlotId, rightClick bool, txId TxId, shiftClick bool, itemId ItemTypeId, amount ItemCount, uses ItemData) {
+	player.lock.Lock()
+	defer player.lock.Unlock()
 
 	// Note that the parameters itemId, amount and uses are all currently
 	// ignored. The item(s) involved are worked out from the server-side data.
 
 	// Determine which inventory window is involved.
 	// TODO support for more windows
+
 	var clickedWindow inventory.IWindow
-	switch windowId {
-	case WindowIdInventory:
+	if windowId == WindowIdInventory {
 		clickedWindow = &player.inventory
-	default:
-		// If this happens, then it's likely that either a client is trying to
-		// do something unusual, or that we haven't yet implemented something.
+	} else if player.curWindow != nil && player.curWindow.GetWindowId() == windowId {
+		clickedWindow = player.curWindow
+	} else {
 		log.Printf(
 			"Warning: ignored window click on unknown window ID %d",
 			windowId)
@@ -321,8 +308,6 @@ func (player *Player) PacketWindowClick(windowId WindowId, slotId SlotId, rightC
 	accepted := false
 
 	if clickedWindow != nil {
-		player.lock.Lock()
-		defer player.lock.Unlock()
 		accepted = clickedWindow.Click(slotId, &player.cursor, rightClick, shiftClick)
 
 		// We send slot updates in case we have custom max counts that differ
@@ -417,6 +402,8 @@ func (player *Player) mainLoop() {
 	}
 }
 
+// Enqueue queues a function to run with the player lock within the player's
+// mainloop.
 func (player *Player) Enqueue(f func(IPlayer)) {
 	if f == nil {
 		return
@@ -424,7 +411,16 @@ func (player *Player) Enqueue(f func(IPlayer)) {
 	player.mainQueue <- f
 }
 
-// Used to receive items picked up from chunks.
+// WithLock runs a function with the player lock within the calling goroutine.
+func (player *Player) WithLock(f func(IPlayer)) {
+	player.lock.Lock()
+	defer player.lock.Unlock()
+	f(player)
+}
+
+// Used to receive items picked up from chunks. It is synchronous so that the
+// passed item can be looked at by the caller afterwards to see if it has been
+// consumed.
 func (player *Player) OfferItem(item *slot.Slot) {
 	player.lock.Lock()
 	defer player.lock.Unlock()
@@ -432,6 +428,46 @@ func (player *Player) OfferItem(item *slot.Slot) {
 	player.inventory.PutItem(item)
 
 	return
+}
+
+// OpenWindow queues a request that the player opens the given window type.
+// TODO this should be passed an appropriate *Inventory for inventories that
+// are tied to the world (particularly for chests).
+func (player *Player) OpenWindow(invTypeId InvTypeId) {
+	player.Enqueue(func(_ IPlayer) {
+		player.closeCurrentWindow(true)
+		window := player.inventory.NewWindow(invTypeId, player.nextWindowId)
+		if window == nil {
+			return
+		}
+
+		buf := &bytes.Buffer{}
+		if err := window.WriteWindowOpen(buf); err != nil {
+			window.Finalize(false)
+			return
+		}
+		if err := window.WriteWindowItems(buf); err != nil {
+			window.Finalize(false)
+			return
+		}
+		player.TransmitPacket(buf.Bytes())
+
+		player.curWindow = window
+		if player.nextWindowId >= WindowIdFreeMax {
+			player.nextWindowId = WindowIdFreeMin
+		} else {
+			player.nextWindowId++
+		}
+	})
+}
+
+// closeCurrentWindow closes any open window. It must be called with
+// player.lock held.
+func (player *Player) closeCurrentWindow(sendClosePacket bool) {
+	if player.curWindow != nil {
+		player.curWindow.Finalize(sendClosePacket)
+	}
+	player.curWindow = nil
 }
 
 // Blocks until essential login packets have been transmitted.

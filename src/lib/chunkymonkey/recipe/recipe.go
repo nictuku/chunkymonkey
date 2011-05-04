@@ -64,37 +64,34 @@ func (r *RecipeSet) Match(width, height int, slots []slot.Slot) (output slot.Slo
 		return
 	}
 
-	// In var names: 'V' means 'vertical' (i.e height) and 'H' means
-	// 'horizontal' (i.e width).
-
-	minH, minV := int(width), int(height)
-	maxH, maxV := 0, 0
+	minX, minY := int(width), int(height)
+	maxX, maxY := 0, 0
 	curIndex := 0
 	// Find the position and size of the smallest rectangle that contains all
 	// non-empty slots.
-	for v := 0; v < height; v++ {
-		for h := 0; h < width; h++ {
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
 			hasItem := slots[curIndex].ItemType != nil
 			if hasItem {
-				if h < minH {
-					minH = h
+				if x < minX {
+					minX = x
 				}
-				if v < minV {
-					minV = v
+				if y < minY {
+					minY = y
 				}
-				if h > maxH {
-					maxH = h
+				if x > maxX {
+					maxX = x
 				}
-				if v > maxV {
-					maxV = v
+				if y > maxY {
+					maxY = y
 				}
 			}
 			curIndex++
 		}
 	}
 
-	widthUsed := 1 + maxV - minV
-	heightUsed := 1 + maxH - minH
+	widthUsed := 1 + maxY - minY
+	heightUsed := 1 + maxX - minX
 	// Empty grid.
 	if widthUsed <= 0 || heightUsed <= 0 {
 		return
@@ -103,9 +100,9 @@ func (r *RecipeSet) Match(width, height int, slots []slot.Slot) (output slot.Slo
 	// Make used rectangle into a linear array of []*Slot.
 	rectSlots := make([]*slot.Slot, widthUsed*heightUsed)
 	outIndex := 0
-	for v := minV; v <= maxV; v++ {
-		for h := minH; h <= maxH; h++ {
-			inIndex := v*width + h
+	for y := minY; y <= maxY; y++ {
+		for x := minX; x <= maxX; x++ {
+			inIndex := y*width + x
 			rectSlots[outIndex] = &slots[inIndex]
 			outIndex++
 		}

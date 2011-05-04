@@ -309,9 +309,17 @@
       "Replaceable": false,
       "Attachable": true
     },
-    "Aspect": "Todo",
+    "Aspect": "Standard",
     "AspectArgs": {
-      "Comment": "Different wood types have different data values"
+      "DroppedItems": [
+        {
+          "DroppedItem": 17,
+          "Probability": 100,
+          "Count": 1,
+          "CopyData": true
+        }
+      ],
+      "BreakOn": 2
     }
   },
   "18": {
@@ -329,7 +337,8 @@
         {
           "DroppedItem": 6,
           "Probability": 5,
-          "Count": 1
+          "Count": 1,
+          "CopyData": true
         }
       ],
       "BreakOn": 2
@@ -507,8 +516,18 @@
       "Replaceable": false,
       "Attachable": true
     },
-    "Aspect": "Todo",
-    "AspectArgs": {}
+    "Aspect": "Standard",
+    "AspectArgs": {
+      "DroppedItems": [
+        {
+          "DroppedItem": 37,
+          "Probability": 100,
+          "Count": 1,
+          "CopyData": true
+        }
+      ],
+      "BreakOn": 0
+    }
   },
   "37": {
     "BlockAttrs": {
@@ -895,7 +914,7 @@
       "Replaceable": false,
       "Attachable": false
     },
-    "Aspect": "Standard",
+    "Aspect": "Workbench",
     "AspectArgs": {
       "DroppedItems": [
         {

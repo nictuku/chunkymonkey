@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"chunkymonkey/block"
+	"chunkymonkey/chunkstore"
 	. "chunkymonkey/interfaces"
 	"chunkymonkey/item"
 	"chunkymonkey/itemtype"
 	"chunkymonkey/proto"
-	"chunkymonkey/chunkstore"
+	"chunkymonkey/slot"
 	. "chunkymonkey/types"
 )
 
@@ -176,72 +177,132 @@ func (chunk *Chunk) GetBlock(subLoc *SubChunkXyz) (blockType BlockId, ok bool) {
 	return
 }
 
-func (chunk *Chunk) DigBlock(subLoc *SubChunkXyz, digStatus DigStatus) (ok bool) {
+func (chunk *Chunk) PlayerBlockHit(player IPlayer, subLoc *SubChunkXyz, digStatus DigStatus) (ok bool) {
 	index, shift, ok := blockIndex(subLoc)
 	if !ok {
 		return
 	}
 
 	blockTypeId := BlockId(chunk.blocks[index])
+	blockData := chunk.blockData[index>>1] >> shift
 	blockLoc := chunk.loc.ToBlockXyz(subLoc)
 
 	if blockType, ok := chunk.mgr.gameRules.BlockTypes.Get(blockTypeId); ok && blockType.Destructable {
-		if blockType.Aspect.Dig(chunk, blockLoc, digStatus) {
+		if blockType.Aspect.Hit(chunk, blockLoc, blockData, digStatus) {
 			chunk.setBlock(blockLoc, subLoc, index, shift, BlockIdAir, 0)
 		}
 	} else {
-		log.Printf("Attempted to destroy unknown block Id %d", blockTypeId)
+		log.Printf("Chunk/PlayerBlockHit: Attempted to destroy unknown block Id %d", blockTypeId)
 		ok = false
 	}
 
 	return
 }
 
-func (chunk *Chunk) PlaceBlock(againstLoc *BlockXyz, againstFace Face, blockId BlockId) (ok bool) {
-	// Check if the block being built against allows such placement (E.g
-	// fences, water, etc. do not).
-	againstBlockType, _, blockUnknownId := chunk.blockQuery(againstLoc)
-	if ok = !blockUnknownId; !ok {
+func (chunk *Chunk) PlayerBlockInteract(player IPlayer, target *BlockXyz, againstFace Face) {
+	// TODO pass in currently held item to allow better checking of if the player
+	// is trying to place a block vs. perform some other interaction (e.g hoeing
+	// dirt). placeBlock() will need to check again for the purposes of *taking*
+	// a block for placement, of course.
+
+	chunkLoc, subLoc := target.ToChunkLocal()
+	if chunkLoc.X != chunk.loc.X || chunkLoc.Z != chunk.loc.Z {
+		log.Printf(
+			"Chunk/PlayerBlockInteract: target position (%#v) is not within chunk (%#v)",
+			target, chunk.loc)
 		return
 	}
-	if ok = againstBlockType.Attachable; !ok {
+	index, _, ok := blockIndex(subLoc)
+	if !ok {
+		log.Printf(
+			"Chunk/PlayerBlockInteract: invalid target position (%#v) within chunk (%#v)",
+			target, chunk.loc)
 		return
 	}
 
-	// The position to put the block at.
-	dx, dy, dz := againstFace.GetDxyz()
-	placeAtLoc := &BlockXyz{
-		againstLoc.X + dx,
-		againstLoc.Y + dy,
-		againstLoc.Z + dz,
-	}
-	placeChunkLoc, placeSubLoc := placeAtLoc.ToChunkLocal()
-	if ok = (placeChunkLoc.X == chunk.loc.X && placeChunkLoc.Z == chunk.loc.Z); !ok {
-		log.Print("Chunk/PlaceBlock: block not inside this chunk")
+	blockTypeId := BlockId(chunk.blocks[index])
+	blockType, ok := chunk.mgr.gameRules.BlockTypes.Get(blockTypeId)
+	if !ok {
+		log.Printf(
+			"Chunk/PlayerBlockInteract: unknown target block type %d at target position (%#v)",
+			blockTypeId, target)
 		return
 	}
-	index, shift, ok := blockIndex(placeSubLoc)
+
+	if blockType.Attachable {
+		// The player is interacting with a block that can be attached to.
+
+		// Work out the position to put the block at.
+		// TODO check for overflow, especially in Y.
+		dx, dy, dz := againstFace.GetDxyz()
+		destLoc := &BlockXyz{
+			target.X + dx,
+			target.Y + dy,
+			target.Z + dz,
+		}
+		destChunkLoc, destSubLoc := destLoc.ToChunkLocal()
+
+		// Place the block.
+		if sameChunk := (destChunkLoc.X == chunk.loc.X && destChunkLoc.Z == chunk.loc.Z); sameChunk {
+			chunk.placeBlock(player, destLoc, destSubLoc, againstFace)
+		} else {
+			chunk.mgr.game.Enqueue(func(game IGame) {
+				destChunk := chunk.mgr.Get(destChunkLoc).(*Chunk)
+				if destChunk != nil {
+					destChunk.placeBlock(player, destLoc, destSubLoc, againstFace)
+				}
+			})
+		}
+
+	} else {
+		blockType.Aspect.Interact(player)
+	}
+
+	return
+}
+
+// placeBlock attempts to place a block. This is called by PlayerBlockInteract
+// in the situation where the player interacts with an attachable block
+// (potentially in a different chunk to the one where the block gets placed).
+func (chunk *Chunk) placeBlock(player IPlayer, destLoc *BlockXyz, destSubLoc *SubChunkXyz, face Face) {
+	index, shift, ok := blockIndex(destSubLoc)
 	if !ok {
-		log.Print("Chunk/PlaceBlock: invalid position within chunk")
 		return
 	}
 
 	// Blocks can only replace certain blocks.
 	blockTypeId := BlockId(chunk.blocks[index])
 	blockType, ok := chunk.mgr.gameRules.BlockTypes.Get(blockTypeId)
-	if !ok {
-		return
-	}
-	if ok = blockType.Replaceable; !ok {
+	if !ok || !blockType.Replaceable {
 		return
 	}
 
-	placeBlockLoc := chunk.loc.ToBlockXyz(placeSubLoc)
+	var takenItem slot.Slot
+	takenItem.Init()
+
+	// Final check that the player is holding a placeable block item. We use
+	// WithLock so that things happen synchronously for a transactional item take
+	// and placement.
+	player.WithLock(func(player IPlayer) {
+		heldItemType := player.GetHeldItemType()
+		// TODO more flexible item checking for block placement (e.g placing seed
+		// items on farmland doesn't fit this current simplistic model). The block
+		// type for the block being placed against should probably contain this
+		// logic (i.e farmland block should know about the seed item).
+		if heldItemType == nil || heldItemType.Id < BlockIdMin || heldItemType.Id > BlockIdMax {
+			// Not a placeable item.
+			return
+		}
+
+		player.TakeOneHeldItem(&takenItem)
+	})
+
+	if takenItem.Count < 1 || takenItem.ItemType == nil {
+		return
+	}
+
 	// TODO block metadata
-	chunk.setBlock(placeBlockLoc, placeSubLoc, index, shift, blockId, 0)
-	ok = true
-
-	return
+	chunk.setBlock(destLoc, destSubLoc, index, shift, BlockId(takenItem.ItemType.Id), 0)
 }
 
 // Used to read the BlockId of a block that's either in the chunk, or
@@ -277,8 +338,7 @@ func (chunk *Chunk) blockQuery(blockLoc *BlockXyz) (blockType *block.BlockType, 
 	if !ok {
 		log.Printf(
 			"Chunk/blockQuery found unknown block type Id %d at %+v",
-			blockTypeId, blockLoc,
-		)
+			blockTypeId, blockLoc)
 		blockUnknownId = true
 	}
 
