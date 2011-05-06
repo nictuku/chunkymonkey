@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"utf8"
+	"regexp"
 
 	. "chunkymonkey/types"
 )
@@ -75,6 +76,10 @@ const (
 	packetIdIncrementStatistic   = 0xc8
 	packetIdDisconnect           = 0xff
 )
+
+// Regexp for ChatMessages
+var checkChatMessageRegexp = regexp.MustCompile("[ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_abcdefghijklmnopqrstuvwxyz{|}~⌂ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜø£Ø×ƒáíóúñÑªº¿®¬½¼¡«»]*")
+var checkColorsRegexp = regexp.MustCompile("§.$")
 
 // Packets commonly received by both client and server
 type PacketHandler interface {
@@ -518,13 +523,22 @@ func ServerWriteHandshake(writer io.Writer, reply string) (err os.Error) {
 // packetIdChatMessage
 
 func WriteChatMessage(writer io.Writer, message string) (err os.Error) {
-	err = binary.Write(writer, binary.BigEndian, byte(packetIdChatMessage))
-	if err != nil {
-		return
+	// Check chat message against illegal chars
+	if checkChatMessageRegexp.MatchString(message) {
+		// Check suffix against color tags eg. "This is a message §0"
+		if checkColorsRegexp.MatchString(message) {
+			// Found a color tag at the end
+			return os.NewError("Found a color tag at the end of the message. This crashes clients.")
+		} else {
+			err = binary.Write(writer, binary.BigEndian, byte(packetIdChatMessage))
+			if err != nil {
+				return
+			}
+			err = writeString16(writer, message)
+			return
+		}
 	}
-
-	err = writeString16(writer, message)
-	return
+	return os.NewError("Found an illegal character in the message. This crashes clients.")
 }
 
 func readChatMessage(reader io.Reader, handler PacketHandler) (err os.Error) {

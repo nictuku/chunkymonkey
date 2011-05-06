@@ -8,4 +8,5 @@ _obj
 /datatests
 /intercept
 /inspectlevel
+/test_obj
 *.log
