@@ -10,8 +10,20 @@ import (
 	. "chunkymonkey/types"
 )
 
+type ClientParser interface {
+	proto.ServerPacketHandler
+	consumeUnrecognizedInput(io.Reader)
+	printf(format string, v ...interface{})
+}
+
+type ServerParser interface {
+	proto.ClientPacketHandler
+	consumeUnrecognizedInput(io.Reader)
+	printf(format string, v ...interface{})
+}
+
 // Hex dumps the input to the log
-func (p *MessageParser) dumpInput(logPrefix string, reader io.Reader) {
+func (p *MessageParser) dumpInput(LogPrefix string, reader io.Reader) {
 	buf := make([]byte, 16, 16)
 	for {
 		_, err := io.ReadAtLeast(reader, buf, 1)
@@ -37,13 +49,12 @@ func (p *MessageParser) consumeUnrecognizedInput(reader io.Reader) {
 }
 
 type MessageParser struct {
-	logPrefix string
+	LogPrefix string
 }
 
 func (p *MessageParser) printf(format string, v ...interface{}) {
-	log.Printf(p.logPrefix+format, v...)
+	log.Printf(p.LogPrefix+format, v...)
 }
-
 func (p *MessageParser) PacketKeepAlive() {
 	// Not logging this packet as it's a bit spammy
 }
@@ -147,7 +158,7 @@ func (p *MessageParser) PacketObjectSpawn(entityId EntityId, objType ObjTypeId, 
 }
 
 func (p *MessageParser) PacketEntitySpawn(entityId EntityId, mobType EntityMobType, position *AbsIntXyz, look *LookBytes, metadata []proto.EntityMetadata) {
-	p.printf("PacketEntitySpawn(entityId=%d, mobType=%d, position=%v, look=%v, metadata=%v)",
+	p.printf("BAAD PacketEntitySpawn(entityId=%d, mobType=%d, position=%v, look=%v, metadata=%v)",
 		entityId, mobType, position, look, metadata)
 }
 
@@ -281,7 +292,7 @@ func (p *MessageParser) PacketDisconnect(reason string) {
 }
 
 // Parses messages from the client
-func (p *MessageParser) CsParse(reader io.Reader) {
+func CsParse(p ClientParser, reader io.Reader) {
 	// If we return, we should consume all input to avoid blocking the pipe
 	// we're listening on. TODO Maybe we could just close it?
 	defer p.consumeUnrecognizedInput(reader)
@@ -291,8 +302,6 @@ func (p *MessageParser) CsParse(reader io.Reader) {
 			p.printf("Parsing failed: %v", err)
 		}
 	}()
-
-	p.logPrefix = "(C->S) "
 
 	username, err := proto.ServerReadHandshake(reader)
 	if err != nil {
@@ -322,7 +331,7 @@ func (p *MessageParser) CsParse(reader io.Reader) {
 }
 
 // Parses messages from the server
-func (p *MessageParser) ScParse(reader io.Reader) {
+func ScParse(p ServerParser, reader io.Reader) {
 	// If we return, we should consume all input to avoid blocking the pipe
 	// we're listening on. TODO Maybe we could just close it?
 	defer p.consumeUnrecognizedInput(reader)
@@ -332,8 +341,6 @@ func (p *MessageParser) ScParse(reader io.Reader) {
 			p.printf("Parsing failed: %v", err)
 		}
 	}()
-
-	p.logPrefix = "(S->C) "
 
 	serverId, err := proto.ClientReadHandshake(reader)
 	if err != nil {

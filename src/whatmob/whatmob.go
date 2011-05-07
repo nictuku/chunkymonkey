@@ -43,6 +43,7 @@ func whatMob(logline []byte) os.Error {
 }
 
 func main() {
+	flag.Parse()
 	f, err := os.Open(*interceptLog)
 	if err != nil {
 		exit(err)

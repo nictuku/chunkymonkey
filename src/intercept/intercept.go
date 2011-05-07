@@ -50,21 +50,27 @@ func serveConn(clientConn net.Conn, remoteaddr string) {
 
 	log.Printf("(%s) Connected to server %s", clientAddr, remoteaddr)
 
-	clientParser := new(parser.MessageParser)
-	serverParser := new(parser.MessageParser)
-
-	// Set up for parsing messages from server to client
+	var clientParser parser.ClientParser
+	var serverParser parser.ServerParser
+	if *mobLog != "" {
+		clientParser = &parser.EntitySpawnLogger{&parser.MessageParser{"S->C "}}
+		serverParser = &parser.EntitySpawnLogger{&parser.MessageParser{"C->S "}}
+	} else {
+		serverParser = new(parser.MessageParser)
+		serverParser = new(parser.MessageParser)
+	}
+	// Set up for parsing messages from server to client. 
 	serverToClientReportChan := spliceParser(
-		func(reader io.Reader) { serverParser.ScParse(reader) },
+		func(reader io.Reader) { parser.ScParse(serverParser, reader) },
 		clientConn, serverConn)
 
-	// Set up for parsing messages from client to server
+	// Set up for parsing messages from client to server.
 	clientToServerReportChan := spliceParser(
-		func(reader io.Reader) { clientParser.CsParse(reader) },
+		func(reader io.Reader) { parser.CsParse(clientParser, reader) },
 		serverConn, clientConn)
 
 	// Wait for the both relay/splices to stop, then we let the connections
-	// close via deferred calls
+	// close via deferred calls.
 	report := <-serverToClientReportChan
 	log.Printf("(%s) Server->client relay after %d bytes with error: %v", clientAddr, report.written, report.err)
 	report = <-clientToServerReportChan
@@ -94,6 +100,9 @@ func serve(localaddr, remoteaddr string) (err os.Error) {
 	return
 }
 
+var mobLog *string = flag.String(
+	"mobLog", "", "If specified, save extra information about mob spawns into this file.")
+
 func usage() {
 	os.Stderr.WriteString("usage: " + os.Args[0] + " localaddr:port remoteaddr:port\n")
 	flag.PrintDefaults()
@@ -111,7 +120,7 @@ func main() {
 	localaddr := flag.Arg(0)
 	remoteaddr := flag.Arg(1)
 
-	// It's nice to have high time precision when looking at packets
+	// It's nice to have high time precision when looking at packets.
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 
 	serve(localaddr, remoteaddr)
