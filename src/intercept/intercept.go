@@ -52,12 +52,12 @@ func serveConn(clientConn net.Conn, remoteaddr string) {
 
 	var clientParser parser.ClientParser
 	var serverParser parser.ServerParser
-	if *mobLog != "" {
-		clientParser = &parser.EntitySpawnLogger{&parser.MessageParser{"S->C "}}
-		serverParser = &parser.EntitySpawnLogger{&parser.MessageParser{"C->S "}}
+	if *mobLog == "" {
+		clientParser = parser.NewClientParser()
+		serverParser = parser.NewServerParser()
 	} else {
-		serverParser = new(parser.MessageParser)
-		serverParser = new(parser.MessageParser)
+		clientParser = parser.NewClientMobLogger()
+		serverParser = parser.NewServerMobLogger()
 	}
 	// Set up for parsing messages from server to client. 
 	serverToClientReportChan := spliceParser(

@@ -6,6 +6,15 @@ import (
 	. "chunkymonkey/types"
 )
 
+func NewClientMobLogger() *EntitySpawnLogger {
+	return &EntitySpawnLogger{NewClientParser()}
+}
+
+func NewServerMobLogger() *EntitySpawnLogger {
+	return &EntitySpawnLogger{NewServerParser()}
+}
+
+
 type EntitySpawnLogger struct {
 	*MessageParser
 }

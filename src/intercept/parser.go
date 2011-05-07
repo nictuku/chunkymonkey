@@ -23,7 +23,7 @@ type ServerParser interface {
 }
 
 // Hex dumps the input to the log
-func (p *MessageParser) dumpInput(LogPrefix string, reader io.Reader) {
+func (p *MessageParser) dumpInput(reader io.Reader) {
 	buf := make([]byte, 16, 16)
 	for {
 		_, err := io.ReadAtLeast(reader, buf, 1)
@@ -46,6 +46,14 @@ func (p *MessageParser) consumeUnrecognizedInput(reader io.Reader) {
 			return
 		}
 	}
+}
+
+func NewClientParser() *MessageParser {
+	return &MessageParser{"S->C "}
+}
+
+func NewServerParser() *MessageParser {
+	return &MessageParser{"C->S "}
 }
 
 type MessageParser struct {
