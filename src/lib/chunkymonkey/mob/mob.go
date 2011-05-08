@@ -1,17 +1,13 @@
-// This is a prototype that will be thrown away and rewritten after I find a
-// usable design. Note, for example, the absense of locks.
 package mob
 
 import (
 	"expvar"
-	"log"
 	"io"
 	"os"
-	"sync"
 
-	. "chunkymonkey/entity"
+	"chunkymonkey/entity"
 	"chunkymonkey/proto"
-	. "chunkymonkey/types"
+	"chunkymonkey/types"
 )
 
 var (
@@ -22,31 +18,28 @@ func init() {
 	expVarMobSpawnCount = expvar.NewInt("mob-spawn-count")
 }
 
-// TODO: Add a Mob interface.
-//var ActiveMobs = []*Mob{}
-
 type Mob struct {
-	Entity
-	mobType  EntityMobType
-	position AbsXyz
-	look     LookDegrees
+	entity.Entity
+	mobType  types.EntityMobType
+	position types.AbsXyz
+	look     types.LookDegrees
 	metadata map[byte]byte
-	lock     sync.Mutex
 }
 
-func (mob *Mob) SetPosition(pos AbsXyz) {
+// If we don't care about locking these resources, we could expose the fields instead?
+func (mob *Mob) SetPosition(pos types.AbsXyz) {
 	mob.position = pos
 }
 
-func (mob *Mob) SetLook(look LookDegrees) {
+func (mob *Mob) SetLook(look types.LookDegrees) {
 	mob.look = look
 }
 
-func (mob *Mob) GetEntityId() EntityId {
+func (mob *Mob) GetEntityId() types.EntityId {
 	return mob.EntityId
 }
 
-func (mob *Mob) GetEntity() *Entity {
+func (mob *Mob) GetEntity() *entity.Entity {
 	return &mob.Entity
 }
 
@@ -76,27 +69,23 @@ func (mob *Mob) SendSpawn(writer io.Writer) (err os.Error) {
 	return
 }
 
-
 // ======================= CREEPER ======================
-
 var (
 	creeperNormal   = byte(0)
 	creeperBlueAura = byte(1)
 )
 
 type Creeper struct {
-	*Mob
+	Mob
 }
 
 func NewCreeper() (c *Creeper) {
-	m := &Mob{}
+	m := Mob{}
 	c = &Creeper{m}
 
 	c.Mob.mobType = CreeperType.Id
-	c.Mob.look = LookDegrees{200, 0}
+	c.Mob.look = types.LookDegrees{200, 0}
 	c.Mob.metadata = map[byte]byte{}
-	log.Println("new ", Mobs[c.Mob.mobType].Name)
-	//ActiveMobs = append(ActiveMobs, mob)
 	return c
 }
 
