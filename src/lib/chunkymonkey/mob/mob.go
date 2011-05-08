@@ -4,7 +4,6 @@ import (
 	"expvar"
 	"io"
 	"os"
-	"sync"
 
 	"chunkymonkey/entity"
 	"chunkymonkey/proto"
@@ -25,7 +24,6 @@ type Mob struct {
 	position types.AbsXyz
 	look     types.LookDegrees
 	metadata map[byte]byte
-	lock     sync.Mutex
 }
 
 // If we don't care about locking these resources, we could expose the fields instead?
@@ -78,11 +76,11 @@ var (
 )
 
 type Creeper struct {
-	*Mob
+	Mob
 }
 
 func NewCreeper() (c *Creeper) {
-	m := &Mob{}
+	m := Mob{}
 	c = &Creeper{m}
 
 	c.Mob.mobType = CreeperType.Id
