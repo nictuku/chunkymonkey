@@ -185,9 +185,13 @@ func (game *Game) AddPlayer(newPlayer IPlayer) {
 	game.SendChatMessage("trying to spawn a mob too!")
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	go func() {
+		// TODO(nictuku): Move this to a unit-test.
 		// Hack to delay mob spawn until login is finished.
 		time.Sleep(5e9)
-		m := mob.NewMob(&mob.Creeper.Id, newPlayer.GetPosition())
+		m := mob.NewCreeper()
+		m.CreeperSetBlueAura(nil)
+		m.SetBurning()
+		m.SetPosition(*newPlayer.GetPosition())
 		game.AddEntity(m.GetEntity())
 		buf := &bytes.Buffer{}
 		if err := m.SendSpawn(buf); err != nil {
