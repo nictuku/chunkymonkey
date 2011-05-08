@@ -189,7 +189,7 @@ func (game *Game) AddPlayer(newPlayer IPlayer) {
 		// Hack to delay mob spawn until login is finished.
 		time.Sleep(5e9)
 		m := mob.NewCreeper()
-		m.CreeperSetBlueAura(nil)
+		m.CreeperSetBlueAura()
 		m.SetBurning()
 		m.SetPosition(*newPlayer.GetPosition())
 		game.AddEntity(m.GetEntity())

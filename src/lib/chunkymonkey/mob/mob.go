@@ -30,7 +30,7 @@ type Mob struct {
 	mobType  EntityMobType
 	position AbsXyz
 	look     LookDegrees
-	metadata []proto.EntityMetadata
+	metadata map[byte]byte
 	lock     sync.Mutex
 }
 
@@ -47,8 +47,15 @@ func (mob *Mob) GetEntity() *Entity {
 }
 
 func (mob *Mob) SetBurning() {
-	// Assumes creeper, otherwise will panic.
-	mob.metadata[1] = proto.EntityMetadata{0, 0, byte(1)}
+	mob.metadata[0] = 0x01
+}
+
+func (mob *Mob) FormatMetadata() []proto.EntityMetadata {
+	x := []proto.EntityMetadata{}
+	for k, v := range mob.metadata {
+		x = append(x, proto.EntityMetadata{0, k, v})
+	}
+	return x
 }
 
 func (mob *Mob) SendSpawn(writer io.Writer) (err os.Error) {
@@ -58,7 +65,7 @@ func (mob *Mob) SendSpawn(writer io.Writer) (err os.Error) {
 		mob.mobType,
 		mob.position.ToAbsIntXyz(),
 		mob.look.ToLookBytes(),
-		mob.metadata)
+		mob.FormatMetadata())
 	if err != nil {
 		expVarMobSpawnCount.Add(1)
 	}
@@ -68,44 +75,31 @@ func (mob *Mob) SendSpawn(writer io.Writer) (err os.Error) {
 
 // ======================= CREEPER ======================
 
-type CreeperStatus int // index 17
-
-const (
-	creeperNormal = iota
-	creeperBlueAura
+var (
+	creeperNormal   = byte(0)
+	creeperBlueAura = byte(1)
 )
 
 type Creeper struct {
 	*Mob
-	Status CreeperStatus
 }
 
 func NewCreeper() (c *Creeper) {
 	m := &Mob{}
-	c = &Creeper{m, creeperNormal}
+	c = &Creeper{m}
 
-	log.Printf("%+v", CreeperType)
-	c.Mob.mobType =  CreeperType.Id
+	c.Mob.mobType = CreeperType.Id
 	c.Mob.look = LookDegrees{200, 0}
-	// I'm still unsure if this raw data should be kept here, or if we
-	// should just have fields that formats the metadata wire data as
-	// needed.
-	c.Mob.metadata = []proto.EntityMetadata{
-			proto.EntityMetadata{0, 17, byte(0)},
-			proto.EntityMetadata{0, 0, byte(0)},
-			proto.EntityMetadata{0, 16, byte(255)}}
+	c.Mob.metadata = map[byte]byte{}
 	log.Println("new ", Mobs[c.Mob.mobType].Name)
 	//ActiveMobs = append(ActiveMobs, mob)
 	return c
 }
 
+func (c *Creeper) SetNormalStatus() {
+	c.Mob.metadata[17] = creeperNormal
+}
 
-
-// .. if the writer is set, sends an EntityMetadata packet with the change.
-func (c *Creeper) CreeperSetBlueAura(writer io.Writer) {
-	x := proto.EntityMetadata{0, 17, byte(1)}
-	c.metadata[0] = x
-	if writer != nil {
-		// Send an EntityMetadata packet with the change.
-	}
+func (c *Creeper) CreeperSetBlueAura() {
+	c.Mob.metadata[17] = creeperBlueAura
 }
