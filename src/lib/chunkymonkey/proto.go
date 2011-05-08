@@ -81,6 +81,10 @@ const (
 var checkChatMessageRegexp = regexp.MustCompile("[ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_abcdefghijklmnopqrstuvwxyz{|}~⌂ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜø£Ø×ƒáíóúñÑªº¿®¬½¼¡«»]*")
 var checkColorsRegexp = regexp.MustCompile("§.$")
 
+// Errors
+var illegalCharErr = os.NewError("Found one or more illegal characters. This could crash clients.")
+var colorTagEndErr = os.NewError("Found a color tag at the end of a message. This could crash clients.")
+
 // Packets commonly received by both client and server
 type PacketHandler interface {
 	PacketKeepAlive()
@@ -528,7 +532,7 @@ func WriteChatMessage(writer io.Writer, message string) (err os.Error) {
 		// Check suffix against color tags eg. "This is a message §0"
 		if checkColorsRegexp.MatchString(message) {
 			// Found a color tag at the end
-			return os.NewError("Found a color tag at the end of the message. This crashes clients.")
+			return colorTagEndErr
 		} else {
 			err = binary.Write(writer, binary.BigEndian, byte(packetIdChatMessage))
 			if err != nil {
@@ -538,7 +542,7 @@ func WriteChatMessage(writer io.Writer, message string) (err os.Error) {
 			return
 		}
 	}
-	return os.NewError("Found an illegal character in the message. This crashes clients.")
+	return illegalCharErr
 }
 
 func readChatMessage(reader io.Reader, handler PacketHandler) (err os.Error) {
@@ -546,11 +550,17 @@ func readChatMessage(reader io.Reader, handler PacketHandler) (err os.Error) {
 	if err != nil {
 		return
 	}
-
-	// TODO sanitize chat message
-
-	handler.PacketChatMessage(message)
-	return
+	if checkChatMessageRegexp.MatchString(message) {
+		// Does not contain illegal chars
+		if checkColorsRegexp.MatchString(message) {
+			// Contains a color tag at the end
+			return colorTagEndErr
+		}
+		// message is fine
+		handler.PacketChatMessage(message)
+		return
+	}
+	return illegalCharErr
 }
 
 // packetIdTimeUpdate
@@ -839,19 +849,21 @@ func readPlayerLook(reader io.Reader, handler PacketHandler) (err os.Error) {
 
 // packetIdPlayerPositionLook
 
-func WritePlayerPositionLook(writer io.Writer, position *AbsXyz, stance AbsCoord, look *LookDegrees, onGround bool) (err os.Error) {
+// packetIdPlayerPositionLook
+
+func writePlayerPositionLookCommon(writer io.Writer, x, y1, y2, z AbsCoord, look *LookDegrees, onGround bool) (err os.Error) {
 	var packet = struct {
 		PacketId byte
 		X        AbsCoord
-		Y        AbsCoord
-		Stance   AbsCoord
+		Y1       AbsCoord
+		Y2       AbsCoord
 		Z        AbsCoord
 		Yaw      AngleDegrees
 		Pitch    AngleDegrees
 		OnGround byte
 	}{
 		packetIdPlayerPositionLook,
-		position.X, position.Y, stance, position.Z,
+		x, y1, y2, z,
 		look.Yaw, look.Pitch,
 		boolToByte(onGround),
 	}
@@ -859,11 +871,27 @@ func WritePlayerPositionLook(writer io.Writer, position *AbsXyz, stance AbsCoord
 	return binary.Write(writer, binary.BigEndian, &packet)
 }
 
-func readPlayerPositionLook(reader io.Reader, handler ClientPacketHandler) (err os.Error) {
+func ClientWritePlayerPositionLook(writer io.Writer, position *AbsXyz, stance AbsCoord, look *LookDegrees, onGround bool) (err os.Error) {
+	return writePlayerPositionLookCommon(
+		writer,
+		position.X, position.Y, stance, position.Z,
+		look,
+		onGround)
+}
+
+func ServerWritePlayerPositionLook(writer io.Writer, position *AbsXyz, stance AbsCoord, look *LookDegrees, onGround bool) (err os.Error) {
+	return writePlayerPositionLookCommon(
+		writer,
+		position.X, stance, position.Y, position.Z,
+		look,
+		onGround)
+}
+
+func clientReadPlayerPositionLook(reader io.Reader, handler ClientPacketHandler) (err os.Error) {
 	var packet struct {
 		X        AbsCoord
-		Y        AbsCoord
 		Stance   AbsCoord
+		Y        AbsCoord
 		Z        AbsCoord
 		Yaw      AngleDegrees
 		Pitch    AngleDegrees
@@ -893,38 +921,11 @@ func readPlayerPositionLook(reader io.Reader, handler ClientPacketHandler) (err 
 	return
 }
 
-// packetIdPlayerPositionLook
-
-// TODO client versions, factor out common code
-
-func ServerWritePlayerPositionLook(writer io.Writer, position *AbsXyz, look *LookDegrees, stance AbsCoord, onGround bool) os.Error {
-	var packet = struct {
-		PacketId byte
-		X        AbsCoord
-		Y        AbsCoord
-		Stance   AbsCoord
-		Z        AbsCoord
-		Yaw      AngleDegrees
-		Pitch    AngleDegrees
-		OnGround byte
-	}{
-		packetIdPlayerPositionLook,
-		position.X,
-		position.Y,
-		stance,
-		position.Z,
-		look.Yaw,
-		look.Pitch,
-		boolToByte(onGround),
-	}
-	return binary.Write(writer, binary.BigEndian, &packet)
-}
-
-func serverPlayerPositionLook(reader io.Reader, handler ServerPacketHandler) (err os.Error) {
+func serverReadPlayerPositionLook(reader io.Reader, handler ServerPacketHandler) (err os.Error) {
 	var packet struct {
 		X        AbsCoord
-		Stance   AbsCoord
 		Y        AbsCoord
+		Stance   AbsCoord
 		Z        AbsCoord
 		Yaw      AngleDegrees
 		Pitch    AngleDegrees
@@ -1251,6 +1252,9 @@ func readNamedEntitySpawn(reader io.Reader, handler ClientPacketHandler) (err os
 		X, Y, Z     AbsIntCoord
 		Yaw, Pitch  AngleBytes
 		CurrentItem ItemTypeId
+	}
+	if err = binary.Read(reader, binary.BigEndian, &packetEnd); err != nil {
+		return
 	}
 
 	handler.PacketNamedEntitySpawn(
@@ -2757,7 +2761,7 @@ var commonReadFns = commonPacketReaderMap{
 // Client->server specific packet mapping
 var serverReadFns = serverPacketReaderMap{
 	packetIdPlayer:             readPlayer,
-	packetIdPlayerPositionLook: serverPlayerPositionLook,
+	packetIdPlayerPositionLook: serverReadPlayerPositionLook,
 	packetIdWindowClick:        readWindowClick,
 	packetIdHoldingChange:      readHoldingChange,
 	packetIdWindowClose:        readWindowClose,
@@ -2770,7 +2774,7 @@ var clientReadFns = clientPacketReaderMap{
 	packetIdEntityEquipment:      readEntityEquipment,
 	packetIdSpawnPosition:        readSpawnPosition,
 	packetIdUpdateHealth:         readUpdateHealth,
-	packetIdPlayerPositionLook:   readPlayerPositionLook,
+	packetIdPlayerPositionLook:   clientReadPlayerPositionLook,
 	packetIdBedUse:               readBedUse,
 	packetIdNamedEntitySpawn:     readNamedEntitySpawn,
 	packetIdItemSpawn:            readItemSpawn,

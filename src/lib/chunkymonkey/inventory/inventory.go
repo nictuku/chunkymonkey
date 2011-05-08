@@ -13,17 +13,22 @@ type IInventorySubscriber interface {
 }
 
 type Inventory struct {
-	lock        sync.Mutex
-	slots       []slot.Slot
-	subscribers map[IInventorySubscriber]bool
+	lock           sync.Mutex
+	slots          []slot.Slot
+	subscribers    map[IInventorySubscriber]bool
+	onUnsubscribed func()
 }
 
-func (inv *Inventory) Init(size int) {
+// Init initializes the inventory. onUnsubscribed is called in a new goroutine
+// when the number of subscribers to the inventory reaches zero (but is not
+// called initially).
+func (inv *Inventory) Init(size int, onUnsubscribed func()) {
 	inv.slots = make([]slot.Slot, size)
 	for i := range inv.slots {
 		inv.slots[i].Init()
 	}
 	inv.subscribers = make(map[IInventorySubscriber]bool)
+	inv.onUnsubscribed = onUnsubscribed
 }
 
 func (inv *Inventory) AddSubscriber(subscriber IInventorySubscriber) {
@@ -36,6 +41,9 @@ func (inv *Inventory) RemoveSubscriber(subscriber IInventorySubscriber) {
 	inv.lock.Lock()
 	defer inv.lock.Unlock()
 	inv.subscribers[subscriber] = false, false
+	if len(inv.subscribers) == 0 && inv.onUnsubscribed != nil {
+		go inv.onUnsubscribed()
+	}
 }
 
 // StandardClick takes the default actions upon a click event from a player.

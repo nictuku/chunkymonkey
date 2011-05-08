@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"chunkymonkey/gamerules"
+	"chunkymonkey/recipe"
 	"chunkymonkey/slot"
 	. "chunkymonkey/types"
 )
@@ -34,7 +34,6 @@ const (
 type PlayerInventory struct {
 	Window
 	entityId     EntityId
-	gameRules    *gamerules.GameRules
 	crafting     CraftingInventory
 	armor        Inventory
 	main         Inventory
@@ -44,14 +43,13 @@ type PlayerInventory struct {
 
 // Init initializes PlayerInventory.
 // entityId - The EntityId of the player who holds the inventory.
-func (w *PlayerInventory) Init(entityId EntityId, viewer IWindowViewer, gameRules *gamerules.GameRules) {
+func (w *PlayerInventory) Init(entityId EntityId, viewer IWindowViewer, recipes *recipe.RecipeSet) {
 	w.entityId = entityId
-	w.gameRules = gameRules
 
-	w.crafting.Init(playerInvCraftWidth, playerInvCraftHeight, gameRules)
-	w.armor.Init(playerInvArmorNum)
-	w.main.Init(playerInvMainNum)
-	w.holding.Init(playerInvHoldingNum)
+	w.crafting.Init(playerInvCraftWidth, playerInvCraftHeight, nil, recipes)
+	w.armor.Init(playerInvArmorNum, nil)
+	w.main.Init(playerInvMainNum, nil)
+	w.holding.Init(playerInvHoldingNum, nil)
 	w.Window.Init(
 		WindowIdInventory,
 		// Note that we have no known value for invTypeId - but it's only used
@@ -70,13 +68,15 @@ func (w *PlayerInventory) Init(entityId EntityId, viewer IWindowViewer, gameRule
 // NewWindow creates a new window for the player that shares its player
 // inventory sections with `w`. Returns nil for unrecognized inventory types.
 // TODO implement more inventory types.
-func (w *PlayerInventory) NewWindow(invTypeId InvTypeId, windowId WindowId) IWindow {
+func (w *PlayerInventory) NewWindow(invTypeId InvTypeId, windowId WindowId, inventory interface{}) IWindow {
 	switch invTypeId {
 	case InvTypeIdWorkbench:
-		return NewWorkbenchWindow(
-			w.entityId, w.viewer, w.gameRules,
-			windowId,
-			&w.main, &w.holding)
+		if crafting, ok := inventory.(*WorkbenchInventory); ok && crafting != nil {
+			return NewWorkbenchWindow(
+				w.entityId, w.viewer,
+				windowId,
+				crafting, &w.main, &w.holding)
+		}
 	default:
 	}
 	return nil

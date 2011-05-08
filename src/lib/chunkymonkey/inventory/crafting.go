@@ -1,9 +1,14 @@
 package inventory
 
 import (
-	"chunkymonkey/gamerules"
+	"chunkymonkey/recipe"
 	"chunkymonkey/slot"
 	. "chunkymonkey/types"
+)
+
+const (
+	workbenchInvCraftWidth  = 3
+	workbenchInvCraftHeight = 3
 )
 
 // Inventory with extended function to perform crafting. It assumes that slot 0
@@ -11,14 +16,14 @@ import (
 type CraftingInventory struct {
 	Inventory
 	width, height int
-	gameRules     *gamerules.GameRules
+	recipes       *recipe.RecipeSet
 }
 
-func (inv *CraftingInventory) Init(width, height int, gameRules *gamerules.GameRules) {
-	inv.Inventory.Init(1 + width*height)
+func (inv *CraftingInventory) Init(width, height int, onUnsubscribed func(), recipes *recipe.RecipeSet) {
+	inv.Inventory.Init(1+width*height, onUnsubscribed)
 	inv.width = width
 	inv.height = height
-	inv.gameRules = gameRules
+	inv.recipes = recipes
 }
 
 // Click handles window clicks from a user with special handling for crafting.
@@ -45,12 +50,56 @@ func (inv *CraftingInventory) Click(slotId SlotId, cursor *slot.Slot, rightClick
 		// non-empty input slot.
 		for i := 1; i < len(inv.slots); i++ {
 			inv.slots[i].Decrement()
+			inv.slotUpdate(&inv.slots[i], SlotId(i))
 		}
 	}
 
 	// Match recipe and set output slot.
-	inv.slots[0] = inv.gameRules.Recipes.Match(inv.width, inv.height, inv.slots[1:])
+	inv.slots[0] = inv.recipes.Match(inv.width, inv.height, inv.slots[1:])
 	inv.slotUpdate(&inv.slots[0], 0)
+
+	return
+}
+
+type WorkbenchInventory struct {
+	CraftingInventory
+}
+
+func NewWorkbenchInventory(onUnsubscribed func(), recipes *recipe.RecipeSet) (inv *WorkbenchInventory) {
+	inv = new(WorkbenchInventory)
+	inv.CraftingInventory.Init(
+		workbenchInvCraftWidth,
+		workbenchInvCraftHeight,
+		onUnsubscribed,
+		recipes,
+	)
+	return
+}
+
+// TakeAllItems empties the inventory, and returns all items that were inside
+// it inside a slice of Slots.
+func (inv *WorkbenchInventory) TakeAllItems() (items []slot.Slot) {
+	inv.lock.Lock()
+	defer inv.lock.Unlock()
+
+	items = make([]slot.Slot, 0, len(inv.slots)-1)
+
+	// The output slot gets emptied, the only items that are to be ejected are
+	// those in the input slots.
+	output := &inv.slots[0]
+	output.Init()
+	inv.slotUpdate(output, 0)
+
+	for i := 1; i < len(inv.slots); i++ {
+		curSlot := &inv.slots[i]
+		if curSlot.Count > 0 {
+			var taken slot.Slot
+			taken.Init()
+			taken.Swap(curSlot)
+			items = append(items, taken)
+			inv.slotUpdate(curSlot, SlotId(i))
+		}
+	}
 
 	return
 }

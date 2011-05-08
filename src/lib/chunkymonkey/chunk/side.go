@@ -74,7 +74,7 @@ func (n *neighboursCache) sideCacheSetNeighbour(side ChunkSideDir, neighbour *Ch
 	blocksIndex := 0
 	for *h = 0; *h < ChunkSizeH; *h++ {
 		subLoc.Y = 0
-		index, _, _ := blockIndex(&subLoc)
+		index, _ := subLoc.BlockIndex()
 		for y := 0; y < ChunkSizeY; y++ {
 			update[blocksIndex] = blocks[index]
 			index++

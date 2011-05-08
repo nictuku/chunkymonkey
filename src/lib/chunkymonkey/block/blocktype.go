@@ -1,25 +1,9 @@
 package block
 
 import (
-	"rand"
-
-	"chunkymonkey/item"
 	"chunkymonkey/itemtype"
 	. "chunkymonkey/types"
 )
-
-// IBlockPlayer defines the interactions that a block aspect may have upon a
-// player.
-type IBlockPlayer interface {
-	OpenWindow(invTypeId InvTypeId)
-}
-
-// Defines the behaviour of a block.
-type IBlockAspect interface {
-	Name() string
-	Hit(chunk IChunkBlock, blockLoc *BlockXyz, blockData byte, digStatus DigStatus) (destroyed bool)
-	Interact(player IBlockPlayer)
-}
 
 type BlockAttrs struct {
 	Name         string
@@ -71,14 +55,3 @@ func (btl *BlockTypeList) CreateBlockItemTypes(itemTypes itemtype.ItemTypeMap) {
 		}
 	}
 }
-
-// The interface required of a chunk by block behaviour.
-type IChunkBlock interface {
-	GetRand() *rand.Rand
-	GetItemType(itemTypeId ItemTypeId) (itemType *itemtype.ItemType, ok bool)
-	AddItem(item *item.Item)
-}
-
-// The distance from the edge of a block that items spawn at in fractional
-// blocks.
-const blockItemSpawnFromEdge = 4.0 / PixelsPerBlock

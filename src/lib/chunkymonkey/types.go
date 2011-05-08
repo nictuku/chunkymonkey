@@ -348,18 +348,7 @@ func (d ChunkSideDir) GetDxz() (dx, dz ChunkCoord) {
 }
 
 func (d ChunkSideDir) GetOpposite() ChunkSideDir {
-	switch d {
-	case ChunkSideEast:
-		return ChunkSideWest
-	case ChunkSideSouth:
-		return ChunkSideNorth
-	case ChunkSideWest:
-		return ChunkSideEast
-	case ChunkSideNorth:
-		return ChunkSideSouth
-	}
-	// Should not happen (should we panic on this?)
-	return ChunkSideNorth
+	return (d + 2) & 3
 }
 
 // Returns the direction that (dx,dz) is in. Exactly one of dx and dz must be
@@ -473,6 +462,7 @@ func (c ChunkCoord) Abs() ChunkCoord {
 	return c
 }
 
+// ChunkXz represents the position of a chunk within the world.
 type ChunkXz struct {
 	X, Z ChunkCoord
 }
@@ -510,14 +500,60 @@ type SubChunkSize struct {
 	X, Y, Z SubChunkSizeCoord
 }
 
+// SubChunkXyz represents the position of a block within a chunk.
 type SubChunkXyz struct {
 	X, Y, Z SubChunkCoord
+}
+
+// BlockIndex returns the relevant index for a block with a given position
+// within a chunk. If subLoc represents an invalid position, then ok=False is
+// returned.
+func (subLoc *SubChunkXyz) BlockIndex() (index BlockIndex, ok bool) {
+	if subLoc.X < 0 || subLoc.Y < 0 || subLoc.Z < 0 || subLoc.X >= ChunkSizeH || subLoc.Y >= ChunkSizeY || subLoc.Z >= ChunkSizeH {
+		ok = false
+	} else {
+		ok = true
+
+		index = BlockIndex(subLoc.Y) + (BlockIndex(subLoc.Z) * ChunkSizeY) + (BlockIndex(subLoc.X) * ChunkSizeY * ChunkSizeH)
+	}
+	return
+}
+
+type BlockIndex uint32
+
+func (bi BlockIndex) GetBlockId(blocks []byte) BlockId {
+	return BlockId(blocks[bi])
+}
+
+func (bi BlockIndex) GetBlockData(blockData []byte) byte {
+	shift := (bi & 1) << 2
+	index := bi >> 1
+	return (blockData[index] >> shift) & 0xf
+}
+
+func (bi BlockIndex) SetBlockId(blocks []byte, id BlockId) {
+	blocks[bi] = byte(id)
+}
+
+// SetBlockData is used to set block metadata inside an array of bytes, where
+// each byte contains packed nibbles.
+func (bi BlockIndex) SetBlockData(blockData []byte, data byte) {
+	index := bi >> 1
+
+	combinedData := blockData[index]
+
+	shift := (bi & 1) << 2
+	mask := byte(0x0f) << shift
+	combinedData = ((data << shift) & mask) | (combinedData & ^mask)
+
+	blockData[index] = combinedData
 }
 
 // Coordinate of a block within the world
 type BlockCoord int32
 type BlockYCoord int8
 
+// BlockXyz represents the position of a block within the world.
 type BlockXyz struct {
 	X BlockCoord
 	Y BlockYCoord

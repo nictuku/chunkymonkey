@@ -15,6 +15,7 @@ import (
 	"chunkymonkey/item"
 	"chunkymonkey/itemtype"
 	"chunkymonkey/proto"
+	"chunkymonkey/recipe"
 	"chunkymonkey/slot"
 	. "chunkymonkey/types"
 )
@@ -37,6 +38,7 @@ type Chunk struct {
 	skyLight      []byte
 	heightMap     []byte
 	items         map[EntityId]*item.Item
+	blockExtra    map[BlockIndex]interface{} // Used by IBlockAspect to store private specific data.
 	rand          *rand.Rand
 	neighbours    neighboursCache
 	cachedPacket  []byte                       // Cached packet data for this block.
@@ -55,6 +57,7 @@ func newChunkFromReader(reader chunkstore.ChunkReader, mgr *ChunkManager) (chunk
 		blockLight:    reader.BlockLight(),
 		heightMap:     reader.HeightMap(),
 		items:         make(map[EntityId]*item.Item),
+		blockExtra:    make(map[BlockIndex]interface{}),
 		rand:          rand.New(rand.NewSource(time.UTC().Seconds())),
 		subscribers:   make(map[IChunkSubscriber]bool),
 		subscriberPos: make(map[IChunkSubscriber]*AbsXyz),
@@ -64,38 +67,14 @@ func newChunkFromReader(reader chunkstore.ChunkReader, mgr *ChunkManager) (chunk
 	return
 }
 
-func blockIndex(subLoc *SubChunkXyz) (index int32, shift byte, ok bool) {
-	if subLoc.X < 0 || subLoc.Y < 0 || subLoc.Z < 0 || subLoc.X >= ChunkSizeH || subLoc.Y >= ChunkSizeY || subLoc.Z >= ChunkSizeH {
-		ok = false
-		index = 0
-	} else {
-		ok = true
-
-		index = int32(subLoc.Y) + (int32(subLoc.Z) * ChunkSizeY) + (int32(subLoc.X) * ChunkSizeY * ChunkSizeH)
-
-		if index%2 == 0 {
-			// Low nibble
-			shift = 0
-		} else {
-			// High nibble
-			shift = 4
-		}
-	}
-	return
-}
-
 // Sets a block and its data. Returns true if the block was not changed.
-func (chunk *Chunk) setBlock(blockLoc *BlockXyz, subLoc *SubChunkXyz, index int32, shift byte, blockType BlockId, blockMetadata byte) {
+func (chunk *Chunk) setBlock(blockLoc *BlockXyz, subLoc *SubChunkXyz, index BlockIndex, blockType BlockId, blockMetadata byte) {
 
 	// Invalidate cached packet
 	chunk.cachedPacket = nil
 
-	chunk.blocks[index] = byte(blockType)
-
-	mask := byte(0x0f) << shift
-	twoBlockData := chunk.blockData[index/2]
-	twoBlockData = ((blockMetadata << shift) & mask) | (twoBlockData & ^mask)
-	chunk.blockData[index/2] = twoBlockData
+	index.SetBlockId(chunk.blocks, blockType)
+	index.SetBlockData(chunk.blockData, blockMetadata)
 
 	// Tell players that the block changed
 	packet := &bytes.Buffer{}
@@ -114,6 +93,12 @@ func (chunk *Chunk) GetLoc() *ChunkXz {
 
 func (chunk *Chunk) Enqueue(f func(IChunk)) {
 	chunk.mainQueue <- f
+}
+
+func (chunk *Chunk) EnqueueGeneric(f func(interface{})) {
+	chunk.mainQueue <- func(chunk IChunk) {
+		f(chunk)
+	}
 }
 
 func (chunk *Chunk) mainLoop() {
@@ -166,30 +151,56 @@ func (chunk *Chunk) TransferItem(item *item.Item) {
 	chunk.items[item.GetEntity().EntityId] = item
 }
 
+func (chunk *Chunk) GetBlockExtra(subLoc *SubChunkXyz) interface{} {
+	if index, ok := subLoc.BlockIndex(); ok {
+		if extra, ok := chunk.blockExtra[index]; ok {
+			return extra
+		}
+	}
+	return nil
+}
+
+func (chunk *Chunk) SetBlockExtra(subLoc *SubChunkXyz, extra interface{}) {
+	if index, ok := subLoc.BlockIndex(); ok {
+		chunk.blockExtra[index] = extra, extra != nil
+	}
+}
+
 func (chunk *Chunk) GetBlock(subLoc *SubChunkXyz) (blockType BlockId, ok bool) {
-	index, _, ok := blockIndex(subLoc)
+	index, ok := subLoc.BlockIndex()
 	if !ok {
 		return
 	}
 
-	blockType = BlockId(chunk.blocks[index])
+	blockType = index.GetBlockId(chunk.blocks)
 
 	return
 }
 
+func (chunk *Chunk) GetRecipeSet() *recipe.RecipeSet {
+	return chunk.mgr.gameRules.Recipes
+}
+
 func (chunk *Chunk) PlayerBlockHit(player IPlayer, subLoc *SubChunkXyz, digStatus DigStatus) (ok bool) {
-	index, shift, ok := blockIndex(subLoc)
+	index, ok := subLoc.BlockIndex()
 	if !ok {
 		return
 	}
 
-	blockTypeId := BlockId(chunk.blocks[index])
-	blockData := chunk.blockData[index>>1] >> shift
-	blockLoc := chunk.loc.ToBlockXyz(subLoc)
+	blockTypeId := index.GetBlockId(chunk.blocks)
 
 	if blockType, ok := chunk.mgr.gameRules.BlockTypes.Get(blockTypeId); ok && blockType.Destructable {
-		if blockType.Aspect.Hit(chunk, blockLoc, blockData, digStatus) {
-			chunk.setBlock(blockLoc, subLoc, index, shift, BlockIdAir, 0)
+		blockData := index.GetBlockData(chunk.blockData)
+		blockLoc := chunk.loc.ToBlockXyz(subLoc)
+
+		blockInstance := &block.BlockInstance{
+			Chunk:    chunk,
+			BlockLoc: *blockLoc,
+			SubLoc:   *subLoc,
+			Data:     blockData,
+		}
+		if blockType.Aspect.Hit(blockInstance, player, digStatus) {
+			chunk.setBlock(blockLoc, subLoc, index, BlockIdAir, 0)
 		}
 	} else {
 		log.Printf("Chunk/PlayerBlockHit: Attempted to destroy unknown block Id %d", blockTypeId)
@@ -212,7 +223,7 @@ func (chunk *Chunk) PlayerBlockInteract(player IPlayer, target *BlockXyz, agains
 			target, chunk.loc)
 		return
 	}
-	index, _, ok := blockIndex(subLoc)
+	index, ok := subLoc.BlockIndex()
 	if !ok {
 		log.Printf(
 			"Chunk/PlayerBlockInteract: invalid target position (%#v) within chunk (%#v)",
@@ -255,7 +266,14 @@ func (chunk *Chunk) PlayerBlockInteract(player IPlayer, target *BlockXyz, agains
 		}
 
 	} else {
-		blockType.Aspect.Interact(player)
+		// Player is otherwise interacting with the block.
+		blockInstance := &block.BlockInstance{
+			Chunk:    chunk,
+			BlockLoc: *target,
+			SubLoc:   *subLoc,
+			Data:     index.GetBlockData(chunk.blockData),
+		}
+		blockType.Aspect.Interact(blockInstance, player)
 	}
 
 	return
@@ -265,13 +283,13 @@ func (chunk *Chunk) PlayerBlockInteract(player IPlayer, target *BlockXyz, agains
 // in the situation where the player interacts with an attachable block
 // (potentially in a different chunk to the one where the block gets placed).
 func (chunk *Chunk) placeBlock(player IPlayer, destLoc *BlockXyz, destSubLoc *SubChunkXyz, face Face) {
-	index, shift, ok := blockIndex(destSubLoc)
+	index, ok := destSubLoc.BlockIndex()
 	if !ok {
 		return
 	}
 
 	// Blocks can only replace certain blocks.
-	blockTypeId := BlockId(chunk.blocks[index])
+	blockTypeId := index.GetBlockId(chunk.blocks)
 	blockType, ok := chunk.mgr.gameRules.BlockTypes.Get(blockTypeId)
 	if !ok || !blockType.Replaceable {
 		return
@@ -302,7 +320,7 @@ func (chunk *Chunk) placeBlock(player IPlayer, destLoc *BlockXyz, destSubLoc *Su
 	}
 
 	// TODO block metadata
-	chunk.setBlock(destLoc, destSubLoc, index, shift, BlockId(takenItem.ItemType.Id), 0)
+	chunk.setBlock(destLoc, destSubLoc, index, BlockId(takenItem.ItemType.Id), 0)
 }
 
 // Used to read the BlockId of a block that's either in the chunk, or

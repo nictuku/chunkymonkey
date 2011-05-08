@@ -68,7 +68,7 @@ func StartPlayer(game IGame, conn net.Conn, name string) {
 	player.chunkSubs.Init(player)
 
 	player.cursor.Init()
-	player.inventory.Init(player.EntityId, player, game.GetGameRules())
+	player.inventory.Init(player.EntityId, player, game.GetGameRules().Recipes)
 
 	game.Enqueue(func(game IGame) {
 		game.AddPlayer(player)
@@ -114,13 +114,17 @@ func (player *Player) GetName() string {
 
 func (player *Player) SendSpawn(writer io.Writer) (err os.Error) {
 	heldSlot, _ := player.inventory.HeldItem()
+	heldItemId := heldSlot.GetItemTypeId()
+	if heldItemId < 0 {
+		heldItemId = 0
+	}
 
 	err = proto.WriteNamedEntitySpawn(
 		writer,
 		player.EntityId, player.name,
 		player.position.ToAbsIntXyz(),
 		player.look.ToLookBytes(),
-		heldSlot.GetItemTypeId(),
+		heldItemId,
 	)
 	if err != nil {
 		return
@@ -355,12 +359,11 @@ func (player *Player) receiveLoop() {
 
 func (player *Player) transmitLoop() {
 	for {
-		bs := <-player.txQueue
+		bs, ok := <-player.txQueue
 
-		if bs == nil {
+		if !ok || bs == nil {
 			return // txQueue closed
 		}
-
 		_, err := player.conn.Write(bs)
 		if err != nil {
 			if err != os.EOF {
@@ -394,8 +397,8 @@ func (player *Player) mainLoop() {
 	player.postLogin()
 
 	for {
-		f := <-player.mainQueue
-		if f == nil {
+		f, ok := <-player.mainQueue
+		if !ok || f == nil {
 			return
 		}
 		player.runQueuedCall(f)
@@ -433,10 +436,10 @@ func (player *Player) OfferItem(item *slot.Slot) {
 // OpenWindow queues a request that the player opens the given window type.
 // TODO this should be passed an appropriate *Inventory for inventories that
 // are tied to the world (particularly for chests).
-func (player *Player) OpenWindow(invTypeId InvTypeId) {
+func (player *Player) OpenWindow(invTypeId InvTypeId, inventory interface{}) {
 	player.Enqueue(func(_ IPlayer) {
 		player.closeCurrentWindow(true)
-		window := player.inventory.NewWindow(invTypeId, player.nextWindowId)
+		window := player.inventory.NewWindow(invTypeId, player.nextWindowId, inventory)
 		if window == nil {
 			return
 		}
@@ -479,8 +482,9 @@ func (player *Player) postLogin() {
 		// Send player start position etc.
 		buf := &bytes.Buffer{}
 		proto.ServerWritePlayerPositionLook(
-			buf, &player.position, &player.look,
-			player.position.Y+StanceNormal, false)
+			buf,
+			&player.position, player.position.Y+StanceNormal,
+			&player.look, false)
 
 		player.inventory.WriteWindowItems(buf)
 

@@ -20,10 +20,10 @@ func (aspect *TodoAspect) Name() string {
 	return "Todo"
 }
 
-func (aspect *TodoAspect) Hit(chunk IChunkBlock, blockLoc *BlockXyz, blockData byte, digStatus DigStatus) (destroyed bool) {
+func (aspect *TodoAspect) Hit(instance *BlockInstance, player IBlockPlayer, digStatus DigStatus) (destroyed bool) {
 	destroyed = false
 	return
 }
 
-func (aspect *TodoAspect) Interact(player IBlockPlayer) {
+func (aspect *TodoAspect) Interact(instance *BlockInstance, player IBlockPlayer) {
 }

@@ -31,6 +31,29 @@ func TestLookDegrees_ToLookBytes(t *testing.T) {
 	}
 }
 
+func TestChunkSideDir_GetOpposite(t *testing.T) {
+	type Test struct {
+		input, expected ChunkSideDir
+	}
+
+	tests := []Test{
+		{ChunkSideEast, ChunkSideWest},
+		{ChunkSideSouth, ChunkSideNorth},
+		{ChunkSideWest, ChunkSideEast},
+		{ChunkSideNorth, ChunkSideSouth},
+	}
+
+	for i := range tests {
+		input, expected := tests[i].input, tests[i].expected
+		result := input.GetOpposite()
+		if expected != result {
+			t.Errorf(
+				"%T(%v).GetOpposite()=>%d but expected %d",
+				input, input, result, expected)
+		}
+	}
+}
+
 func TestAbsXyz_UpdateChunkXz(t *testing.T) {
 	type Test struct {
 		input    AbsXyz
@@ -189,6 +212,121 @@ func TestChunkXz_ChunkKey(t *testing.T) {
 		}
 	}
 }
+
+func TestSubChunkXyz_BlockIndex(t *testing.T) {
+	type Test struct {
+		input    SubChunkXyz
+		expIndex BlockIndex
+		expOk    bool
+	}
+
+	tests := []Test{
+		Test{SubChunkXyz{0, 0, 0}, 0, true},
+		Test{SubChunkXyz{0, 1, 0}, 1, true},
+		Test{SubChunkXyz{0, 2, 0}, 2, true},
+		Test{SubChunkXyz{0, 3, 0}, 3, true},
+
+		Test{SubChunkXyz{0, 127, 0}, 127, true},
+		Test{SubChunkXyz{0, 0, 1}, 128, true},
+
+		Test{SubChunkXyz{0, 127, 1}, 255, true},
+		Test{SubChunkXyz{0, 0, 2}, 256, true},
+
+		// Invalid locations
+		Test{SubChunkXyz{16, 0, 0}, 0, false},
+		Test{SubChunkXyz{0, 128, 0}, 0, false},
+		Test{SubChunkXyz{0, 0, 16}, 0, false},
+	}
+
+	for _, r := range tests {
+		t.Logf("%#v", r.input)
+		t.Logf("  expecting: index=%d, ok=%t", r.expIndex, r.expOk)
+		index, ok := r.input.BlockIndex()
+		if r.expOk != ok {
+			t.Errorf("  ok=%t", ok)
+		}
+		if !ok {
+			continue
+		}
+		if r.expIndex != index {
+			t.Errorf("  index=%d", index)
+		}
+	}
+}
+
+// {{{ BlockIndex tests
+
+type blockIndexTest struct {
+	index    BlockIndex
+	input    byte
+	before   []byte
+	expAfter []byte
+}
+
+func (test *blockIndexTest) test(t *testing.T, desc string, fn func(index BlockIndex, input byte, data []byte)) {
+	t.Logf("%T(%v) %s", test.index, test.index, desc)
+	t.Logf("  before   = %v", test.before)
+	t.Logf("  expAfter = %v", test.expAfter)
+	if len(test.before) != len(test.expAfter) {
+		t.Errorf("  Error in test: data lengths not equal")
+		return
+	}
+
+	data := make([]byte, len(test.before))
+	copy(data, test.before)
+
+	fn(test.index, test.input, data)
+
+	t.Logf("  result   = %v", data)
+
+	for i := range data {
+		if test.expAfter[i] != data[i] {
+			t.Errorf("  Fail: output differs at index %d", i)
+			break
+		}
+	}
+}
+
+type blockIndexTests []blockIndexTest
+
+func (tests blockIndexTests) runTests(t *testing.T, desc string, fn func(index BlockIndex, input byte, data []byte)) {
+	for i := range tests {
+		tests[i].test(t, desc, fn)
+	}
+}
+
+func TestBlockIndex_SetBlockId(t *testing.T) {
+	tests := blockIndexTests{
+		{0, 1, []byte{2, 2}, []byte{1, 2}},
+		{1, 1, []byte{2, 2}, []byte{2, 1}},
+	}
+	tests.runTests(t, "SetBlockId", func(index BlockIndex, input byte, data []byte) {
+		index.SetBlockId(data, BlockId(input))
+	})
+}
+
+func TestBlockIndex_SetBlockData(t *testing.T) {
+	tests := blockIndexTests{
+		// Tests indexing of the nibble, and correct bit setting in filled bytes.
+		{0, 1, []byte{0xff, 0xff}, []byte{0xf1, 0xff}},
+		{1, 1, []byte{0xff, 0xff}, []byte{0x1f, 0xff}},
+		{2, 1, []byte{0xff, 0xff}, []byte{0xff, 0xf1}},
+		{3, 1, []byte{0xff, 0xff}, []byte{0xff, 0x1f}},
+
+		// Tests correct bit setting in zero bytes.
+		{0, 1, []byte{0x00, 0x00}, []byte{0x01, 0x00}},
+		{1, 1, []byte{0x00, 0x00}, []byte{0x10, 0x00}},
+
+		// Tests correct bit setting in half-filled bytes.
+		{0, 1, []byte{0x0f, 0x0f}, []byte{0x01, 0x0f}},
+		{1, 1, []byte{0x0f, 0x0f}, []byte{0x1f, 0x0f}},
+	}
+	tests.runTests(t, "SetBlockData", func(index BlockIndex, input byte, data []byte) {
+		index.SetBlockData(data, input)
+	})
+}
+
+// }}} BlockIndex tests
 
 func TestBlockXyz_ToAbsIntXyz(t *testing.T) {
 	type Test struct {

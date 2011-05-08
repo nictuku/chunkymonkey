@@ -1,17 +1,14 @@
 package inventory
 
 import (
-	"chunkymonkey/gamerules"
 	"chunkymonkey/slot"
 	. "chunkymonkey/types"
 )
 
 const (
-	workbenchInvCraftWidth  = 3
-	workbenchInvCraftHeight = 3
-	workbenchInvCraftNum    = 1 + workbenchInvCraftWidth*workbenchInvCraftHeight
-	workbenchInvCraftStart  = 0
-	workbenchInvCraftEnd    = workbenchInvCraftStart + workbenchInvCraftNum
+	workbenchInvCraftNum   = 1 + workbenchInvCraftWidth*workbenchInvCraftHeight
+	workbenchInvCraftStart = 0
+	workbenchInvCraftEnd   = workbenchInvCraftStart + workbenchInvCraftNum
 
 	workbenchInvMainStart = workbenchInvCraftEnd
 	workbenchInvMainEnd   = workbenchInvMainStart + playerInvMainNum
@@ -22,19 +19,17 @@ const (
 
 type WorkbenchWindow struct {
 	Window
-	gameRules *gamerules.GameRules
-	crafting  CraftingInventory
-	main      *Inventory
-	holding   *Inventory
+	crafting *WorkbenchInventory
+	main     *Inventory
+	holding  *Inventory
 }
 
-func NewWorkbenchWindow(entityId EntityId, viewer IWindowViewer, gameRules *gamerules.GameRules, windowId WindowId, main, holding *Inventory) (w *WorkbenchWindow) {
+func NewWorkbenchWindow(entityId EntityId, viewer IWindowViewer, windowId WindowId, crafting *WorkbenchInventory, main, holding *Inventory) (w *WorkbenchWindow) {
 	w = &WorkbenchWindow{
-		gameRules: gameRules,
-		main:      main,
-		holding:   holding,
+		crafting: crafting,
+		main:     main,
+		holding:  holding,
 	}
-	w.crafting.Init(workbenchInvCraftWidth, workbenchInvCraftHeight, gameRules)
 	w.Window.Init(
 		windowId,
 		InvTypeIdWorkbench,
