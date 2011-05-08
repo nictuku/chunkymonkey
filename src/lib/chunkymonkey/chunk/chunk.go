@@ -76,6 +76,8 @@ func (chunk *Chunk) setBlock(blockLoc *BlockXyz, subLoc *SubChunkXyz, index Bloc
 	index.SetBlockId(chunk.blocks, blockType)
 	index.SetBlockData(chunk.blockData, blockMetadata)
 
+	chunk.blockExtra[index] = nil, false
+
 	// Tell players that the block changed
 	packet := &bytes.Buffer{}
 	proto.WriteBlockChange(packet, blockLoc, blockType, blockMetadata)
