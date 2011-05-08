@@ -38,6 +38,10 @@ func (mob *Mob) SetPosition(pos AbsXyz) {
 	mob.position = pos
 }
 
+func (mob *Mob) SetLook(look LookDegrees) {
+	mob.look = look
+}
+
 func (mob *Mob) GetEntityId() EntityId {
 	return mob.EntityId
 }
