@@ -198,14 +198,61 @@ func (chunk *Chunk) GetRecipeSet() *recipe.RecipeSet {
 func (chunk *Chunk) PlayerBlockHit(player IPlayer, subLoc *SubChunkXyz, digStatus DigStatus) (ok bool) {
 	index, ok := subLoc.BlockIndex()
 	if !ok {
+		log.Println("not ok")
+		return
+	}
+	log.Println("hmmm")
+	blockTypeId := index.GetBlockId(chunk.blocks)
+	blockLoc := chunk.loc.ToBlockXyz(subLoc)
+
+	// Method too large. Split this.
+	if digStatus == DigDropItem {
+		log.Printf("User dropping item.")
+		var takenItem slot.Slot
+		takenItem.Init()
+
+		player.WithLock(func(player IPlayer) {
+			heldItemType := player.GetHeldItemType()
+			if heldItemType == nil {
+				ok = false
+				return
+			}
+			player.TakeOneHeldItem(&takenItem)
+		})
+
+		if takenItem.Count < 1 || takenItem.ItemType == nil {
+			ok = false
+			return
+		}
+		playerPos, ok := chunk.subscriberPos[player]
+		if !ok {
+
+			log.Println("NOT OK")
+			log.Println("my entity ID", player.GetEntityId())
+			log.Println("All entities:")
+			for p, _ := range chunk.subscribers {
+				log.Println("=>", p.GetEntityId())
+			}
+		}
+		if playerPos == nil {
+			log.Fatal("WTF NIL")
+		}
+		loc, _ := playerPos.ToBlockXyz().ToChunkLocal()
+		log.Println("loc: %+v", loc)
+		i := item.NewItem(
+			takenItem.ItemType, takenItem.Count, 0,
+			playerPos,
+			// XXX: Need to find a way to throw this in a nice parabola.
+			&AbsVelocity{-76, -1353, 1396},
+		)
+		log.Printf("new item, t=%+v, loc=%+v", takenItem.ItemType, playerPos)
+		chunk.AddSpawner(i)
+		ok = true
 		return
 	}
 
-	blockTypeId := index.GetBlockId(chunk.blocks)
-
 	if blockType, ok := chunk.mgr.gameRules.BlockTypes.Get(blockTypeId); ok && blockType.Destructable {
 		blockData := index.GetBlockData(chunk.blockData)
-		blockLoc := chunk.loc.ToBlockXyz(subLoc)
 
 		blockInstance := &block.BlockInstance{
 			Chunk:    chunk,

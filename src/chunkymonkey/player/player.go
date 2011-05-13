@@ -90,11 +90,20 @@ func (player *Player) GetEntity() *entity.Entity {
 	return &player.Entity
 }
 
+func (player *Player) LockedGetPosition() *AbsXyz {
+	// This isn't for real, since I'm returning the reference.
+	// The fix is to get rid of this lock.
+	player.lock.Lock()
+	defer player.lock.Unlock()
+	return &player.position
+}
+
 func (player *Player) LockedGetChunkPosition() *ChunkXz {
 	player.lock.Lock()
 	defer player.lock.Unlock()
 	return player.position.ToChunkXz()
 }
+
 
 func (player *Player) IsWithin(p1, p2 *ChunkXz) bool {
 	p := player.position.ToChunkXz()
@@ -213,29 +222,32 @@ func (player *Player) PacketPlayerLook(look *LookDegrees, onGround bool) {
 	})
 }
 
+// Handles both block hits and item drops.
 func (player *Player) PacketPlayerBlockHit(status DigStatus, blockLoc *BlockXyz, face Face) {
 	// TODO validate that the player is actually somewhere near the block
 
 	// TODO validate that the player has dug long enough to stop speed
 	// hacking (based on block type and tool used - non-trivial).
 
-	if face != FaceNull {
-		chunkLoc, subLoc := blockLoc.ToChunkLocal()
-
-		player.game.Enqueue(func(game IGame) {
-			chunk := game.GetChunkManager().Get(chunkLoc)
-
-			if chunk == nil {
-				return
-			}
-
-			chunk.Enqueue(func(chunk IChunk) {
-				chunk.PlayerBlockHit(player, subLoc, status)
-			})
-		})
-	} else {
-		// TODO player dropped item
+	// If item drop, then the provided blockLoc is bogus.
+	if status == DigDropItem {
+		pos := player.LockedGetPosition()
+		blockLoc = pos.ToBlockXyz()
+		log.Println("new blockloc", blockLoc)
 	}
+	chunkLoc, subLoc := blockLoc.ToChunkLocal()
+
+	player.game.Enqueue(func(game IGame) {
+		chunk := game.GetChunkManager().Get(chunkLoc)
+
+		if chunk == nil {
+			return
+		}
+
+		chunk.Enqueue(func(chunk IChunk) {
+			chunk.PlayerBlockHit(player, subLoc, status)
+		})
+	})
 }
 
 func (player *Player) PacketPlayerBlockInteract(itemId ItemTypeId, blockLoc *BlockXyz, face Face, amount ItemCount, uses ItemData) {
