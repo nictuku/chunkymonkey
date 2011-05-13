@@ -2,6 +2,7 @@ package intercept_parse
 
 import (
 	"encoding/hex"
+	"flag"
 	"io"
 	"log"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"chunkymonkey/proto"
 	. "chunkymonkey/types"
 )
+
+var verbose = flag.Bool("v", false, "Verbose output - also prints spammy packets.")
 
 // Hex dumps the input to the log
 func (p *MessageParser) dumpInput(logPrefix string, reader io.Reader) {
@@ -45,7 +48,9 @@ func (p *MessageParser) printf(format string, v ...interface{}) {
 }
 
 func (p *MessageParser) PacketKeepAlive() {
-	// Not logging this packet as it's a bit spammy
+	if *verbose {
+		p.printf("PacketKeepAlive()")
+	}
 }
 
 func (p *MessageParser) PacketChatMessage(message string) {
@@ -57,15 +62,21 @@ func (p *MessageParser) PacketRespawn() {
 }
 
 func (p *MessageParser) PacketPlayer(onGround bool) {
-	// Not logging this packet as it's a bit spammy
+	if *verbose {
+		p.printf("PacketPlayer(onGround=%v)", onGround)
+	}
 }
 
 func (p *MessageParser) PacketPlayerPosition(position *AbsXyz, stance AbsCoord, onGround bool) {
-	p.printf("PacketPlayerPosition(position=%v, stance=%v, onGround=%t)", position, stance, onGround)
+	if *verbose {
+		p.printf("PacketPlayerPosition(position=%v, stance=%v, onGround=%t)", position, stance, onGround)
+	}
 }
 
 func (p *MessageParser) PacketPlayerLook(look *LookDegrees, onGround bool) {
-	p.printf("PacketPlayerLook(look=%v, onGround=%t)", look, onGround)
+	if *verbose {
+		p.printf("PacketPlayerLook(look=%v, onGround=%t)", look, onGround)
+	}
 }
 
 func (p *MessageParser) PacketPlayerBlockHit(status DigStatus, blockLoc *BlockXyz, face Face) {
@@ -95,9 +106,11 @@ func (p *MessageParser) PacketEntityAction(entityId EntityId, action EntityActio
 }
 
 func (p *MessageParser) PacketSignUpdate(position *BlockXyz, lines [4]string) {
-	p.printf("PacketSignUpdate(position=%v, lines=[%q, %q, %q, %q])",
-		position,
-		lines[0], lines[1], lines[2], lines[3])
+	if *verbose {
+		p.printf("PacketSignUpdate(position=%v, lines=[%q, %q, %q, %q])",
+			position,
+			lines[0], lines[1], lines[2], lines[3])
+	}
 }
 
 func (p *MessageParser) ClientPacketLogin(entityId EntityId, mapSeed RandomSeed, dimension DimensionId) {
