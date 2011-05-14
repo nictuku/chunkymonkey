@@ -1,0 +1,114 @@
+{
+  "Fuels": [
+    {
+      "Id": 5,
+      "FuelTicks": 300
+    },
+    {
+      "Id": 5,
+      "FuelTicks": 300
+    },
+    {
+      "Id": 6,
+      "FuelTicks": 100
+    },
+    {
+      "Id": 17,
+      "FuelTicks": 300
+    },
+    {
+      "Id": 25,
+      "FuelTicks": 300
+    },
+    {
+      "Id": 47,
+      "FuelTicks": 300
+    },
+    {
+      "Id": 53,
+      "FuelTicks": 300
+    },
+    {
+      "Id": 54,
+      "FuelTicks": 300
+    },
+    {
+      "Id": 58,
+      "FuelTicks": 300
+    },
+    {
+      "Id": 84,
+      "FuelTicks": 300
+    },
+    {
+      "Id": 85,
+      "FuelTicks": 300
+    },
+    {
+      "Id": 263,
+      "FuelTicks": 1600
+    },
+    {
+      "Id": 280,
+      "FuelTicks": 100
+    },
+    {
+      "Id": 327,
+      "FuelTicks": 20000
+    }
+  ],
+  "Recipes": [
+    {
+      "Comment": "iron ore -> iron ingot",
+      "Input": 15,
+      "Output": 265
+    },
+    {
+      "Comment": "gold ore -> gold ingot",
+      "Input": 14,
+      "Output": 266
+    },
+    {
+      "Comment": "sand -> glass",
+      "Input": 12,
+      "Output": 20
+    },
+    {
+      "Comment": "cobblestone -> stone",
+      "Input": 4,
+      "Output": 1
+    },
+    {
+      "Comment": "raw porkchop -> cooked porkchop",
+      "Input": 319,
+      "Output": 320
+    },
+    {
+      "Comment": "clay -> clay brick",
+      "Input": 82,
+      "Output": 45
+    },
+    {
+      "Comment": "raw fish -> cooked fish",
+      "Input": 349,
+      "Output": 350
+    },
+    {
+      "Comment": "log -> charcoal",
+      "Input": 17,
+      "Output": 263,
+      "OutputData": 1
+    },
+    {
+      "Comment": "cactus -> cactus green",
+      "Input": 81,
+      "Output": 351,
+      "OutputData": 2
+    },
+    {
+      "Comment": "diamond ore -> diamond",
+      "Input": 56,
+      "Output": 264
+    }
+  ]
+}

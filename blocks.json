@@ -302,7 +302,7 @@
   },
   "17": {
     "BlockAttrs": {
-      "Name": "log",
+      "Name": "wood",
       "Opacity": 15,
       "Destructable": true,
       "Solid": true,
@@ -692,7 +692,7 @@
   },
   "45": {
     "BlockAttrs": {
-      "Name": "brick",
+      "Name": "clay brick",
       "Opacity": 15,
       "Destructable": true,
       "Solid": true,
