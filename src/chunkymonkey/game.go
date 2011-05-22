@@ -49,7 +49,7 @@ func NewGame(worldPath string, gameRules *gamerules.GameRules) (game *Game, err 
 	}
 
 	game.serverId = fmt.Sprintf("%x", game.rand.Int63())
-	//game.serverId = "-"
+	game.serverId = "-"
 
 	game.chunkManager = chunk.NewChunkManager(worldStore.ChunkStore, game)
 

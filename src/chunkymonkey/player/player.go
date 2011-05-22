@@ -90,12 +90,14 @@ func (player *Player) GetEntity() *entity.Entity {
 	return &player.Entity
 }
 
-func (player *Player) LockedGetPosition() *AbsXyz {
-	// This isn't for real, since I'm returning the reference.
-	// The fix is to get rid of this lock.
-	player.lock.Lock()
-	defer player.lock.Unlock()
+func (player *Player) GetPosition() *AbsXyz {
+	// XXX: This is very racy, but not post-refactoring.
 	return &player.position
+}
+
+func (player *Player) GetLook() *LookDegrees {
+	// XXX: This is very racy, but not post-refactoring.
+	return &player.look
 }
 
 func (player *Player) LockedGetChunkPosition() *ChunkXz {
@@ -231,7 +233,7 @@ func (player *Player) PacketPlayerBlockHit(status DigStatus, blockLoc *BlockXyz,
 
 	// If item drop, then the provided blockLoc is bogus.
 	if status == DigDropItem {
-		pos := player.LockedGetPosition()
+		pos := player.GetPosition()
 		blockLoc = pos.ToBlockXyz()
 		log.Println("new blockloc", blockLoc)
 	}

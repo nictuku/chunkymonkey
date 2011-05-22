@@ -42,6 +42,7 @@ type IPlayer interface {
 	IsWithin(p1, p2 *ChunkXz) bool
 	GetHeldItemType() *itemtype.ItemType
 	TakeOneHeldItem(into *slot.Slot)
+	GetLook() *LookDegrees
 }
 
 type IChunk interface {

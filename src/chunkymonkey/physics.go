@@ -3,6 +3,7 @@ package physics
 import (
 	"io"
 	"math"
+	"log"
 	"os"
 
 	"chunkymonkey/proto"
@@ -272,6 +273,25 @@ func (obj *PointObject) nextBlockToEnter(move blockAxisMove) *BlockXyz {
 	return block
 }
 
+// Spend X of momentum to 
+func VelocityFromLook(look *LookDegrees, momentum float64) *AbsVelocity {
+	// player yaw %!d(types.AngleDegrees=-53.24998), pitch %!d(types.AngleDegrees=-4.4999986)
+	//log.Printf("player yaw %d, pitch %d", look.Yaw, look.Pitch)
+	//yaw := math.Remainder(float64(look.Yaw), 360)
+	log.Println("detected yaw", look.Yaw)
+	radYaw := float64(look.Yaw) * (math.Pi / 180)
+	radPitch := float64(look.Pitch) * (math.Pi / 180)
+	log.Println("radians, yaw:", radYaw, "pitch:", radPitch)
+	x, z := math.Sincos(radYaw)
+	
+	v := AbsVelocity{
+		AbsVelocityCoord(-1*momentum * float64(x)),
+		AbsVelocityCoord(0),
+		AbsVelocityCoord(momentum * float64(z)),
+		}
+	//log.Printf("absVelocity %+v", v)
+	return &v
+}
 // In one dimension, calculates time taken for movement from position `p` with
 // velocity `v` until intersection with a block boundary. Note that if v is
 // small enough or zero then math.MaxFloat64 is returned.

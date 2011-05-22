@@ -17,6 +17,7 @@ import (
 	"chunkymonkey/item"
 	"chunkymonkey/itemtype"
 	"chunkymonkey/mob"
+	"chunkymonkey/physics"
 	"chunkymonkey/proto"
 	"chunkymonkey/recipe"
 	"chunkymonkey/slot"
@@ -239,11 +240,18 @@ func (chunk *Chunk) PlayerBlockHit(player IPlayer, subLoc *SubChunkXyz, digStatu
 		}
 		loc, _ := playerPos.ToBlockXyz().ToChunkLocal()
 		log.Println("loc: %+v", loc)
+		
+		look := player.GetLook()
+		// player yaw %!d(types.AngleDegrees=-53.24998), pitch %!d(types.AngleDegrees=-4.4999986)
+		v := physics.VelocityFromLook(look, 1500)
+		log.Printf("player yaw %d, pitch %d", look.Yaw, look.Pitch)
+		log.Printf("absVelocity %+v", v)
 		i := item.NewItem(
 			takenItem.ItemType, takenItem.Count, 0,
 			playerPos,
 			// XXX: Need to find a way to throw this in a nice parabola.
-			&AbsVelocity{-76, -1353, 1396},
+			// positive X = south, Y = upwards, Z = west
+			v,
 		)
 		log.Printf("new item, t=%+v, loc=%+v", takenItem.ItemType, playerPos)
 		chunk.AddSpawner(i)
