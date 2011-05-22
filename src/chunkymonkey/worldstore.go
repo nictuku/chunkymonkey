@@ -17,7 +17,7 @@ type WorldStore struct {
 	WorldPath string
 
 	LevelData     *nbt.NamedTag
-	ChunkStore    chunkstore.ChunkStore
+	ChunkStore    chunkstore.IChunkStore
 	StartPosition AbsXyz
 }
 
@@ -64,7 +64,7 @@ func loadLevelData(worldPath string) (levelData *nbt.NamedTag, err os.Error) {
 	return
 }
 
-func absXyzFromNbt(tag nbt.Tag, path string) (pos AbsXyz, err os.Error) {
+func absXyzFromNbt(tag nbt.ITag, path string) (pos AbsXyz, err os.Error) {
 	posList, posOk := tag.Lookup(path).(*nbt.List)
 	if !posOk {
 		err = BadType(path)

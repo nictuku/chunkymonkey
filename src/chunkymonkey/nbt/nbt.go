@@ -24,13 +24,13 @@ const (
 	TagNamed     = 0x80
 )
 
-type Tag interface {
+type ITag interface {
 	GetType() byte
 	Read(io.Reader) os.Error
-	Lookup(path string) Tag
+	Lookup(path string) ITag
 }
 
-func NewTagByType(tagType byte) (tag Tag) {
+func NewTagByType(tagType byte) (tag ITag) {
 	switch tagType {
 	case TagEnd:
 		tag = new(End)
@@ -70,13 +70,13 @@ func (end *End) Read(io.Reader) os.Error {
 	return nil
 }
 
-func (end *End) Lookup(path string) Tag {
+func (end *End) Lookup(path string) ITag {
 	return nil
 }
 
 type NamedTag struct {
 	Name string
-	Tag  Tag
+	Tag  ITag
 }
 
 func (n *NamedTag) GetType() byte {
@@ -109,7 +109,7 @@ func (n *NamedTag) Read(reader io.Reader) (err os.Error) {
 	return
 }
 
-func (n *NamedTag) Lookup(path string) Tag {
+func (n *NamedTag) Lookup(path string) ITag {
 	components := strings.Split(path, "/", 2)
 	if components[0] != n.Name {
 		return nil
@@ -130,7 +130,7 @@ func (*Byte) GetType() byte {
 	return TagByte
 }
 
-func (*Byte) Lookup(path string) Tag {
+func (*Byte) Lookup(path string) ITag {
 	return nil
 }
 
@@ -150,7 +150,7 @@ func (s *Short) Read(reader io.Reader) (err os.Error) {
 	return binary.Read(reader, binary.BigEndian, &s.Value)
 }
 
-func (*Short) Lookup(path string) Tag {
+func (*Short) Lookup(path string) ITag {
 	return nil
 }
 
@@ -166,7 +166,7 @@ func (i *Int) Read(reader io.Reader) (err os.Error) {
 	return binary.Read(reader, binary.BigEndian, &i.Value)
 }
 
-func (*Int) Lookup(path string) Tag {
+func (*Int) Lookup(path string) ITag {
 	return nil
 }
 
@@ -182,7 +182,7 @@ func (l *Long) Read(reader io.Reader) (err os.Error) {
 	return binary.Read(reader, binary.BigEndian, &l.Value)
 }
 
-func (*Long) Lookup(path string) Tag {
+func (*Long) Lookup(path string) ITag {
 	return nil
 }
 
@@ -198,7 +198,7 @@ func (f *Float) Read(reader io.Reader) (err os.Error) {
 	return binary.Read(reader, binary.BigEndian, &f.Value)
 }
 
-func (*Float) Lookup(path string) Tag {
+func (*Float) Lookup(path string) ITag {
 	return nil
 }
 
@@ -214,7 +214,7 @@ func (d *Double) Read(reader io.Reader) (err os.Error) {
 	return binary.Read(reader, binary.BigEndian, &d.Value)
 }
 
-func (*Double) Lookup(path string) Tag {
+func (*Double) Lookup(path string) ITag {
 	return nil
 }
 
@@ -244,7 +244,7 @@ func (b *ByteArray) Read(reader io.Reader) (err os.Error) {
 	return
 }
 
-func (*ByteArray) Lookup(path string) Tag {
+func (*ByteArray) Lookup(path string) ITag {
 	return nil
 }
 
@@ -274,12 +274,12 @@ func (s *String) Read(reader io.Reader) (err os.Error) {
 	return
 }
 
-func (*String) Lookup(path string) Tag {
+func (*String) Lookup(path string) ITag {
 	return nil
 }
 
 type List struct {
-	Value []Tag
+	Value []ITag
 }
 
 func (*List) GetType() byte {
@@ -299,7 +299,7 @@ func (l *List) Read(reader io.Reader) (err os.Error) {
 		return
 	}
 
-	list := make([]Tag, length.Value)
+	list := make([]ITag, length.Value)
 	for i, _ := range list {
 		tag := NewTagByType(byte(tagType.Value))
 		err = tag.Read(reader)
@@ -314,7 +314,7 @@ func (l *List) Read(reader io.Reader) (err os.Error) {
 	return
 }
 
-func (*List) Lookup(path string) Tag {
+func (*List) Lookup(path string) ITag {
 	return nil
 }
 
@@ -346,7 +346,7 @@ func (c *Compound) Read(reader io.Reader) (err os.Error) {
 	return
 }
 
-func (c *Compound) Lookup(path string) (tag Tag) {
+func (c *Compound) Lookup(path string) (tag ITag) {
 	components := strings.Split(path, "/", 2)
 	tag, ok := c.Tags[components[0]]
 	if !ok {

@@ -1,5 +1,10 @@
 SERVER_BINARY=chunkymonkey
-EXTRA_BINARIES=intercept inspectlevel datatests
+EXTRA_BINARIES=\
+	datatests \
+	inspectlevel \
+	intercept \
+	style
+
 DIAGRAMS=diagrams/top-level-architecture.png
 
 server: $(SERVER_BINARY)
@@ -19,6 +24,9 @@ clean:
 
 fmt:
 	@gd -q -fmt --tab src
+
+check: style
+	@./style `find . -name \*.go`
 
 test: cleantmp datatests
 	@-rm -rf test_obj/tmp*
@@ -40,6 +48,9 @@ inspectlevel: libs
 	@gd -q -I src -o $@ src/util/$@
 
 datatests: libs
+	@gd -q -I src -o $@ src/util/$@
+
+style: src/util/style/style.go
 	@gd -q -I src -o $@ src/util/$@
 
 docs: $(DIAGRAMS)

@@ -12,12 +12,12 @@ import (
 // ChunkManager contains all chunks and can look them up
 type ChunkManager struct {
 	game       IGame
-	chunkStore chunkstore.ChunkStore
+	chunkStore chunkstore.IChunkStore
 	gameRules  *gamerules.GameRules
 	chunks     map[uint64]*Chunk
 }
 
-func NewChunkManager(chunkStore chunkstore.ChunkStore, game IGame) *ChunkManager {
+func NewChunkManager(chunkStore chunkstore.IChunkStore, game IGame) *ChunkManager {
 	return &ChunkManager{
 		game:       game,
 		chunkStore: chunkStore,

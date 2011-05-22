@@ -81,12 +81,12 @@ func main() {
 
 	game, err := chunkymonkey.NewGame(worldPath, gameRules)
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 	game.UnderMaintenanceMsg = *underMaintenaceMsg
 	err = startHttpServer(*httpAddr)
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 
 	game.Serve(*addr)

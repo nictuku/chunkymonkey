@@ -57,7 +57,7 @@ type Chunk struct {
 	subscriberPos map[IChunkSubscriber]*AbsXyz // Player positions that are near or in the chunk.
 }
 
-func newChunkFromReader(reader chunkstore.ChunkReader, mgr *ChunkManager) (chunk *Chunk) {
+func newChunkFromReader(reader chunkstore.IChunkReader, mgr *ChunkManager) (chunk *Chunk) {
 	chunk = &Chunk{
 		mainQueue:     make(chan func(IChunk), 256),
 		mgr:           mgr,

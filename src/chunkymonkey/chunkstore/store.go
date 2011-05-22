@@ -8,11 +8,11 @@ import (
 	"chunkymonkey/nbt"
 )
 
-type ChunkStore interface {
-	LoadChunk(chunkLoc *ChunkXz) (reader ChunkReader, err os.Error)
+type IChunkStore interface {
+	LoadChunk(chunkLoc *ChunkXz) (reader IChunkReader, err os.Error)
 }
 
-type ChunkReader interface {
+type IChunkReader interface {
 	// Returns the chunk location.
 	ChunkLoc() *ChunkXz
 
@@ -37,7 +37,7 @@ type ChunkReader interface {
 }
 
 // Given the NamedTag for a level.dat, returns an appropriate ChunkStore.
-func ChunkStoreForLevel(worldPath string, levelData *nbt.NamedTag) (store ChunkStore, err os.Error) {
+func ChunkStoreForLevel(worldPath string, levelData *nbt.NamedTag) (store IChunkStore, err os.Error) {
 	versionTag, ok := levelData.Lookup("/Data/version").(*nbt.Int)
 
 	if !ok {

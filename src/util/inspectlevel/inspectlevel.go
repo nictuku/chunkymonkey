@@ -16,7 +16,7 @@ func usage() {
 	flag.PrintDefaults()
 }
 
-func displayNbt(indentCount int, tag nbt.Tag) {
+func displayNbt(indentCount int, tag nbt.ITag) {
 	indent := strings.Repeat("  ", indentCount)
 	switch t := tag.(type) {
 	case *nbt.Compound:

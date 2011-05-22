@@ -13,8 +13,8 @@ type chunkStoreAlpha struct {
 	worldPath string
 }
 
-// Creates a ChunkStore that reads the Minecraft Alpha world format.
-func NewChunkStoreAlpha(worldPath string) ChunkStore {
+// Creates a IChunkStore that reads the Minecraft Alpha world format.
+func NewChunkStoreAlpha(worldPath string) IChunkStore {
 	return &chunkStoreAlpha{
 		worldPath: worldPath,
 	}
@@ -29,7 +29,7 @@ func (s *chunkStoreAlpha) chunkPath(chunkLoc *ChunkXz) string {
 }
 
 // Load a chunk from its NBT representation
-func (s *chunkStoreAlpha) LoadChunk(chunkLoc *ChunkXz) (reader ChunkReader, err os.Error) {
+func (s *chunkStoreAlpha) LoadChunk(chunkLoc *ChunkXz) (reader IChunkReader, err os.Error) {
 	if err != nil {
 		return
 	}

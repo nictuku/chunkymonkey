@@ -61,8 +61,8 @@ Pretty informal, as few decisions have been made here as yet. Note that this is
 a statement of intent, rather than reality, as the codebase needs some
 improvement in the following regards.
 
-*   Use gofmt to format code before pushing to the master repository. 4 space
-    characters per indent is the indentation style used (use `make fmt`).
+*   Use gofmt to format code before pushing to the master repository. 1 tab
+    character per indent is the indentation style used (use `make fmt`).
 *   Unit tests must pass before pushing to the master repository (use
     `make test`).
 *   Unit test code where possible/reasonable to do so. It is likely that a
@@ -75,10 +75,11 @@ improvement in the following regards.
     upper/lowercase letter dictates private/public to package, as defined by
     the Go programming language.
 
-To ease the above, there are two make targets:
+To ease the above, there are three make targets:
 
-    $ make fmt  # Format the codebase with gofmt.
-    $ make test # Run all unit tests.
+    $ make fmt   # Format the codebase with gofmt.
+    $ make check # Perform some style checks.
+    $ make test  # Run all unit tests.
 
 
 Top-level architecture
@@ -130,6 +131,30 @@ A server process that spends a lot of the time doing very little should require
 very little in the way of CPU resources, and hopefully as little active RAM as
 possible. Hardware is expensive, and the best (within reason) use of what is
 available must be made.
+
+
+Frontend server design
+----------------------
+
+The purpose of a frontend server is to terminate the player's client TCP
+connection. It maintains connection(s) to chunk server(s), and creates new
+connections to chunk servers as the player moves around in the world. It
+receives the player's client minecraft "packets", and translates them into
+events, which are sent to the chunk servers. It receives updates from the chunk
+servers and sends them to clients.
+
+
+Chunk server design
+-------------------
+
+Each chunk server is responsible for a "shard" of chunks. This shard is a
+square in the X-Z plane, and consists of a whole number of chunks. There is a
+single "master" goroutine for each shard that is responsible for the chunks and
+everything that happens within them.
+
+Note that the player logic happens almost entirely on the chunk server within
+the master goroutine, which makes inventory transactions etc. very
+straightforward and atomic.
 
 
 Monitoring
