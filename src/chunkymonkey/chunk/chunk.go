@@ -240,7 +240,7 @@ func (chunk *Chunk) PlayerBlockHit(player IPlayer, subLoc *SubChunkXyz, digStatu
 		}
 		loc, _ := playerPos.ToBlockXyz().ToChunkLocal()
 		log.Println("loc: %+v", loc)
-		
+
 		look := player.GetLook()
 		// player yaw %!d(types.AngleDegrees=-53.24998), pitch %!d(types.AngleDegrees=-4.4999986)
 		v := physics.VelocityFromLook(look, 1500)

@@ -120,9 +120,9 @@ func Test_getBlockAxisMove(t *testing.T) {
 }
 
 type testVelocityFromLookData struct {
-	look *LookDegrees
+	look     *LookDegrees
 	momentum float64
-	want *AbsVelocity
+	want     *AbsVelocity
 }
 
 func Test_VelocityFromLook(t *testing.T) {
@@ -143,10 +143,10 @@ func Test_VelocityFromLook(t *testing.T) {
 			&AbsVelocity{-28, 2806, 52},
 		},
 	}
-	for _, x := range data { 
+	for _, x := range data {
 		v := VelocityFromLook(x.look, x.momentum)
 		if !reflect.DeepEqual(v, x.want) {
 			t.Errorf("VelocityFromLook, wanted %+v, got %+v", x.want, v)
-		} 
+		}
 	}
 }

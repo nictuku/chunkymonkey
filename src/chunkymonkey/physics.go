@@ -283,12 +283,12 @@ func VelocityFromLook(look *LookDegrees, momentum float64) *AbsVelocity {
 	radPitch := float64(look.Pitch) * (math.Pi / 180)
 	log.Println("radians, yaw:", radYaw, "pitch:", radPitch)
 	x, z := math.Sincos(radYaw)
-	
+
 	v := AbsVelocity{
-		AbsVelocityCoord(-1*momentum * float64(x)),
+		AbsVelocityCoord(-1 * momentum * float64(x)),
 		AbsVelocityCoord(0),
 		AbsVelocityCoord(momentum * float64(z)),
-		}
+	}
 	//log.Printf("absVelocity %+v", v)
 	return &v
 }
