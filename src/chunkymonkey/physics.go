@@ -339,19 +339,21 @@ func VelocityFromLook(look *LookDegrees, momentum float64) *AbsVelocity {
 	// player yaw %!d(types.AngleDegrees=-53.24998), pitch %!d(types.AngleDegrees=-4.4999986)
 	//log.Printf("player yaw %d, pitch %d", look.Yaw, look.Pitch)
 	//yaw := math.Remainder(float64(look.Yaw), 360)
-	log.Println("detected yaw", look.Yaw)
 	radYaw := float64(look.Yaw) * (math.Pi / 180)
 	radPitch := float64(look.Pitch) * (math.Pi / 180)
 	log.Println("radians, yaw:", radYaw, "pitch:", radPitch)
-	x, z := math.Sincos(radYaw)
-	a, b := math.Sincos(radPitch)
-	log.Println("sincos radPitch:", a, b)
+
+	// Yaw trigonometry has negative rotation compared to the unit circle.
+	x, z := math.Sincos(radYaw*-1)
+	log.Println("x, z", x, z)
+	// TODO: Y may need to be inverted.
+	y, z2 := math.Sincos(radPitch)
+	log.Println("y, z2", y, z2)
 
 	v := AbsVelocity{
-		AbsVelocityCoord(-1 * momentum * float64(x)),
-		AbsVelocityCoord(0),
-		AbsVelocityCoord(momentum * float64(z)),
+		AbsVelocityCoord(momentum * float64(x)),
+		AbsVelocityCoord(momentum * float64(y)),
+		AbsVelocityCoord(momentum * float64(z*z2)),
 	}
-	//log.Printf("absVelocity %+v", v)
 	return &v
 }
