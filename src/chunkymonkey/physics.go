@@ -3,6 +3,7 @@ package physics
 import (
 	"io"
 	"math"
+	"log"
 	"os"
 
 	"chunkymonkey/proto"
@@ -48,6 +49,10 @@ type PointObject struct {
 
 func (obj *PointObject) Position() *AbsXyz {
 	return &obj.position
+}
+
+func (obj *PointObject) SetPosition(position AbsXyz) {
+	obj.position = position
 }
 
 func (obj *PointObject) Init(position *AbsXyz, velocity *AbsVelocity) {
@@ -327,4 +332,26 @@ func applyCollision(p *AbsCoord, v *AbsVelocityCoord) {
 		*p = AbsCoord(math.Floor(float64(*p)) + objBlockDistance)
 	}
 	*v = 0
+}
+
+// Spend X of momentum to 
+func VelocityFromLook(look *LookDegrees, momentum float64) *AbsVelocity {
+	// player yaw %!d(types.AngleDegrees=-53.24998), pitch %!d(types.AngleDegrees=-4.4999986)
+	//log.Printf("player yaw %d, pitch %d", look.Yaw, look.Pitch)
+	//yaw := math.Remainder(float64(look.Yaw), 360)
+	log.Println("detected yaw", look.Yaw)
+	radYaw := float64(look.Yaw) * (math.Pi / 180)
+	radPitch := float64(look.Pitch) * (math.Pi / 180)
+	log.Println("radians, yaw:", radYaw, "pitch:", radPitch)
+	x, z := math.Sincos(radYaw)
+	a, b := math.Sincos(radPitch)
+	log.Println("sincos radPitch:", a, b)
+
+	v := AbsVelocity{
+		AbsVelocityCoord(-1 * momentum * float64(x)),
+		AbsVelocityCoord(0),
+		AbsVelocityCoord(momentum * float64(z)),
+	}
+	//log.Printf("absVelocity %+v", v)
+	return &v
 }

@@ -2,6 +2,7 @@ package physics
 
 import (
 	"math"
+	"reflect"
 	"testing"
 
 	. "chunkymonkey/types"
@@ -114,6 +115,38 @@ func Test_getBlockAxisMove(t *testing.T) {
 				r.xDt, r.yDt, r.zDt,
 				r.expBlockAxisMove, r.expDt,
 				resultBlockAxisMove, resultDt)
+		}
+	}
+}
+
+type testVelocityFromLookData struct {
+	look     *LookDegrees
+	momentum float64
+	want     *AbsVelocity
+}
+
+func Test_VelocityFromLook(t *testing.T) {
+	data := []testVelocityFromLookData{
+		{
+			&LookDegrees{0, 0},
+			float64(1536),
+			&AbsVelocity{AbsVelocityCoord(-0), 0, 1536},
+		},
+		{
+			&LookDegrees{-0.6208398, 1.9540057},
+			float64(2368),
+			&AbsVelocity{10, 624, 2368},
+		},
+		{
+			&LookDegrees{-0.2717163, -90},
+			float64(2806),
+			&AbsVelocity{-28, 2806, 52},
+		},
+	}
+	for _, x := range data {
+		v := VelocityFromLook(x.look, x.momentum)
+		if !reflect.DeepEqual(v, x.want) {
+			t.Errorf("VelocityFromLook, wanted %+v, got %+v", x.want, v)
 		}
 	}
 }
