@@ -24,8 +24,8 @@ func init() {
 type Mob struct {
 	EntityId
 	physics.PointObject
-	mobType  EntityMobType
-	look     LookDegrees
+	mobType EntityMobType
+	look    LookDegrees
 	// TODO(nictuku): Move to a more structured form.
 	metadata map[byte]byte
 	// TODO: Change to an AABB object when we have that.

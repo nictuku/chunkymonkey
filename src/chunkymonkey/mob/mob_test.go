@@ -36,11 +36,10 @@ func TestMobSpawn(t *testing.T) {
 			"creeper",
 			func() string {
 				// Bogus position, changing below.
-				m := NewCreeper(&types.AbsXyz{0, 0, 0}, &types.AbsVelocity{})
+				m := NewCreeper(&types.AbsXyz{11, 70, -172}, &types.AbsVelocity{})
 				m.Mob.EntityId = 7777
 				m.CreeperSetBlueAura()
 				m.SetBurning(true)
-				m.SetPosition(types.AbsXyz{11, 70, -172})
 				m.SetLook(types.LookDegrees{0, 199})
 				buf := bytes.NewBuffer(nil)
 				if err := m.SendSpawn(buf); err != nil {
@@ -48,7 +47,7 @@ func TestMobSpawn(t *testing.T) {
 				}
 				return buf.String()
 			},
-			"\x18\x00\x00\x1ea2\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x8d\x00\x01\x10\xff\x11\x01\x7f\x1c\x00\x00\x1ea\x00\x00\x00\x00\x00\x00",
+			"\x18\x00\x00\x1ea2\x00\x00\x01\x60\x00\x00\x08\xc0\xff\xff\xea\x80\x00\x8d\x00\x01\x10\xff\x11\x01\x7f\x1c\x00\x00\x1ea\x00\x00\x00\x00\x00\x00",
 		},
 	}
 	for _, x := range tests {
