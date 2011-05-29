@@ -42,11 +42,12 @@ func (sub *chunkSubscriptions) Init(player *Player) {
 	sub.subscribeToChunks(initialChunkLocs)
 
 	sub.curShard = sub.shards[sub.curShardLoc.Key()].shard
+	log.Println("============ INIT ==========")
 	sub.curShard.ReqAddPlayerData(
 		sub.curChunkLoc,
 		player.name,
 		player.position,
-		*player.look.ToLookBytes(),
+		player.look,
 		player.getHeldItemTypeId(),
 	)
 }
@@ -61,7 +62,7 @@ func (sub *chunkSubscriptions) Move(newLoc *AbsXyz) {
 			sub.moveToShard(newShardLoc)
 		}
 	} else {
-		sub.curShard.ReqSetPlayerPositionLook(sub.curChunkLoc, *newLoc, *sub.player.look.ToLookBytes(), true)
+		sub.curShard.ReqSetPlayerPositionLook(sub.curChunkLoc, *newLoc, sub.player.look, true)
 	}
 }
 
@@ -169,7 +170,7 @@ func (sub *chunkSubscriptions) moveToChunk(newChunkLoc ChunkXz, newLoc *AbsXyz) 
 			newChunkLoc,
 			sub.player.name,
 			sub.player.position,
-			*sub.player.look.ToLookBytes(),
+			sub.player.look,
 			sub.player.getHeldItemTypeId(),
 		)
 	}

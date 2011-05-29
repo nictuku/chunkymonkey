@@ -13,6 +13,7 @@ import (
 	"chunkymonkey/item"
 	"chunkymonkey/itemtype"
 	"chunkymonkey/mob"
+	"chunkymonkey/physics"
 	"chunkymonkey/proto"
 	"chunkymonkey/recipe"
 	"chunkymonkey/slot"
@@ -187,10 +188,26 @@ func (chunk *Chunk) reqHitBlock(player stub.IPlayerConnection, held slot.Slot, d
 	}
 
 	blockTypeId := index.GetBlockId(chunk.blocks)
+	blockLoc := chunk.loc.ToBlockXyz(subLoc)
+	if digStatus == DigDropItem {
+		if held.ItemType == nil {
+			// Player tried to drop item but wasn't holding anything.
+			// (thanks for the unnecessary packet, notch).
+			return
+		}
+		playerData, ok := chunk.playersData[player.GetEntityId()]
+		if !ok {
+			log.Printf("ERROR: player %q not found in chunk %q",
+				player.GetEntityId(), chunk)
+			return
+		}
+		v := physics.VelocityFromLook(playerData.look, 1500)
+		chunk.reqDropItem(player, &held, &playerData.position, v)
+		return
+	}
 
 	if blockType, ok := chunk.mgr.gameRules.BlockTypes.Get(blockTypeId); ok && blockType.Destructable {
 		blockData := index.GetBlockData(chunk.blockData)
-		blockLoc := chunk.loc.ToBlockXyz(subLoc)
 
 		blockInstance := &block.BlockInstance{
 			Chunk:    chunk,
@@ -306,15 +323,18 @@ func (chunk *Chunk) reqTakeItem(player stub.IPlayerConnection, entityId EntityId
 }
 
 func (chunk *Chunk) reqDropItem(player stub.IPlayerConnection, content *slot.Slot, position *AbsXyz, velocity *AbsVelocity) {
+	player.ReqRemoveHeldItem(*content)
+
 	spawnedItem := item.NewItem(
 		content.ItemType,
-		content.Count,
+		1, // count.
 		content.Data,
 		position,
 		velocity,
 	)
 
 	chunk.AddSpawn(spawnedItem)
+
 }
 
 // Used to read the BlockId of a block that's either in the chunk, or
@@ -492,7 +512,7 @@ func (chunk *Chunk) reqMulticastPlayers(exclude EntityId, packet []byte) {
 	}
 }
 
-func (chunk *Chunk) reqAddPlayerData(entityId EntityId, name string, pos AbsXyz, look LookBytes, held ItemTypeId) {
+func (chunk *Chunk) reqAddPlayerData(entityId EntityId, name string, pos AbsXyz, look LookDegrees, held ItemTypeId) {
 	// TODO add other initial data in here.
 	newPlayerData := &playerData{
 		entityId:   entityId,
@@ -519,7 +539,7 @@ func (chunk *Chunk) reqRemovePlayerData(entityId EntityId, isDisconnect bool) {
 	}
 }
 
-func (chunk *Chunk) reqSetPlayerPositionLook(entityId EntityId, pos AbsXyz, look LookBytes, moved bool) {
+func (chunk *Chunk) reqSetPlayerPositionLook(entityId EntityId, pos AbsXyz, look LookDegrees, moved bool) {
 	data, ok := chunk.playersData[entityId]
 
 	if !ok {

@@ -335,7 +335,7 @@ func applyCollision(p *AbsCoord, v *AbsVelocityCoord) {
 }
 
 // Spend X of momentum to 
-func VelocityFromLook(look *LookDegrees, momentum float64) *AbsVelocity {
+func VelocityFromLook(look LookDegrees, momentum float64) *AbsVelocity {
 	// player yaw %!d(types.AngleDegrees=-53.24998), pitch %!d(types.AngleDegrees=-4.4999986)
 	//log.Printf("player yaw %d, pitch %d", look.Yaw, look.Pitch)
 	//yaw := math.Remainder(float64(look.Yaw), 360)
@@ -344,7 +344,7 @@ func VelocityFromLook(look *LookDegrees, momentum float64) *AbsVelocity {
 	log.Println("radians, yaw:", radYaw, "pitch:", radPitch)
 
 	// Yaw trigonometry has negative rotation compared to the unit circle.
-	x, z := math.Sincos(radYaw*-1)
+	x, z := math.Sincos(radYaw * -1)
 	log.Println("x, z", x, z)
 	// TODO: Y may need to be inverted.
 	y, z2 := math.Sincos(radPitch)

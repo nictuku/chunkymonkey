@@ -22,7 +22,7 @@ type playerData struct {
 	entityId   EntityId
 	name       string
 	position   AbsXyz
-	look       LookBytes
+	look       LookDegrees
 	heldItemId ItemTypeId
 	// TODO Armor data.
 }
@@ -32,7 +32,7 @@ func (player *playerData) sendSpawn(writer io.Writer) os.Error {
 		writer,
 		player.entityId, player.name,
 		player.position.ToAbsIntXyz(),
-		&player.look,
+		player.look.ToLookBytes(),
 		player.heldItemId,
 	)
 	// TODO Armor packet(s).
@@ -43,7 +43,7 @@ func (player *playerData) sendPositionLook(writer io.Writer) os.Error {
 		writer,
 		player.entityId,
 		player.position.ToAbsIntXyz(),
-		&player.look)
+		player.look.ToLookBytes())
 }
 
 func (player *playerData) OverlapsItem(item *item.Item) bool {

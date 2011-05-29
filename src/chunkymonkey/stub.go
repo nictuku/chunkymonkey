@@ -41,6 +41,9 @@ type IPlayerConnection interface {
 	// held item).
 	ReqPlaceHeldItem(target BlockXyz, wasHeld slot.Slot)
 
+	// ReqRemoveHeldItem requests that the player remove an item from the held item stack....
+	ReqRemoveHeldItem(wasHeld slot.Slot)
+
 	// ReqOfferItem requests that the player check if it can take the item.  If
 	// it can then it should ReqTakeItem from the chunk.
 	ReqOfferItem(fromChunk ChunkXz, entityId EntityId, item slot.Slot)
@@ -67,11 +70,11 @@ type IShardConnection interface {
 
 	ReqMulticastPlayers(chunkLoc ChunkXz, exclude EntityId, packet []byte)
 
-	ReqAddPlayerData(chunkLoc ChunkXz, name string, position AbsXyz, look LookBytes, held ItemTypeId)
+	ReqAddPlayerData(chunkLoc ChunkXz, name string, position AbsXyz, look LookDegrees, held ItemTypeId)
 
 	ReqRemovePlayerData(chunkLoc ChunkXz, isDisconnect bool)
 
-	ReqSetPlayerPositionLook(chunkLoc ChunkXz, position AbsXyz, look LookBytes, moved bool)
+	ReqSetPlayerPositionLook(chunkLoc ChunkXz, position AbsXyz, look LookDegrees, moved bool)
 
 	// ReqHitBlock requests that the targetted block be hit.
 	ReqHitBlock(held slot.Slot, target BlockXyz, digStatus DigStatus, face Face)

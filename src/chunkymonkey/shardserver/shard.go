@@ -175,6 +175,7 @@ func (shard *ChunkShard) EnqueueAllChunks(fn func(chunk *Chunk)) {
 // EnqueueOnChunk runs a function on the chunk at the given location. If the
 // chunk does not exist, it does nothing.
 func (shard *ChunkShard) EnqueueOnChunk(loc ChunkXz, fn func(chunk *Chunk)) {
+	log.Println("enqueue", loc)
 	shard.requests <- &runOnChunk{loc, fn}
 }
 

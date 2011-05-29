@@ -161,11 +161,15 @@ func (player *Player) PacketPlayerBlockHit(status DigStatus, target *BlockXyz, f
 	player.lock.Lock()
 	defer player.lock.Unlock()
 
+	if status == DigDropItem {
+		// Override target because it isn't provided by the packet in this case.
+		target = player.position.ToBlockXyz()
+		log.Println("fixed target", target)
+	}
 	// TODO validate that the player is actually somewhere near the block
 
 	// TODO measure the dig time on the target block and relay to the shard to
 	// stop speed hacking (based on block type and tool used - non-trivial).
-
 	shardConn, _, ok := player.chunkSubs.ShardConnForBlockXyz(target)
 	if ok {
 		heldPtr, _ := player.inventory.HeldItem()
@@ -390,6 +394,20 @@ func (player *Player) reqPlaceHeldItem(target *BlockXyz, wasHeld *slot.Slot) {
 		shardConn.ReqPlaceItem(*target, into)
 	}
 }
+
+func (player *Player) reqRemoveHeldItem(wasHeld *slot.Slot) {
+	curHeld, _ := player.inventory.HeldItem()
+
+	// Currently held item has changed since chunk saw it.
+	// TODO think about having the slot index passed as well so if that changes,
+	// we can still track the original item and improve placement success rate.
+	if curHeld.ItemType != wasHeld.ItemType || curHeld.Data != wasHeld.Data {
+		return
+	}
+
+	player.inventory.TakeOneHeldItem(wasHeld)
+}
+
 
 // Used to receive items picked up from chunks. It is synchronous so that the
 // passed item can be looked at by the caller afterwards to see if it has been

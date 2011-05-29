@@ -37,6 +37,13 @@ func (psr *playerShardReceiver) ReqPlaceHeldItem(target BlockXyz, wasHeld slot.S
 	})
 }
 
+func (psr *playerShardReceiver) ReqRemoveHeldItem(wasHeld slot.Slot) {
+	psr.player.Enqueue(func(_ *Player) {
+		psr.player.reqRemoveHeldItem(&wasHeld)
+	})
+}
+
+
 func (psr *playerShardReceiver) ReqOfferItem(fromChunk ChunkXz, entityId EntityId, item slot.Slot) {
 	psr.player.Enqueue(func(_ *Player) {
 		psr.player.reqOfferItem(&fromChunk, entityId, &item)

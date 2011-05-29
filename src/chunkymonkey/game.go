@@ -52,7 +52,7 @@ func NewGame(worldPath string, gameRules *gamerules.GameRules) (game *Game, err 
 	game.entityManager.Init()
 
 	game.serverId = fmt.Sprintf("%x", game.rand.Int63())
-	//game.serverId = "-"
+	game.serverId = "-"
 
 	game.chunkManager = shardserver.NewLocalShardManager(worldStore.ChunkStore, &game.entityManager, &game.gameRules)
 

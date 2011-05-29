@@ -1,6 +1,7 @@
 package shardserver
 
 import (
+	"log"
 	"sync"
 
 	"chunkymonkey/chunkstore"
@@ -56,7 +57,7 @@ func (conn *localShardConnection) ReqMulticastPlayers(chunkLoc ChunkXz, exclude 
 	})
 }
 
-func (conn *localShardConnection) ReqAddPlayerData(chunkLoc ChunkXz, name string, position AbsXyz, look LookBytes, held ItemTypeId) {
+func (conn *localShardConnection) ReqAddPlayerData(chunkLoc ChunkXz, name string, position AbsXyz, look LookDegrees, held ItemTypeId) {
 	conn.shard.EnqueueOnChunk(chunkLoc, func(chunk *Chunk) {
 		chunk.reqAddPlayerData(conn.entityId, name, position, look, held)
 	})
@@ -68,7 +69,7 @@ func (conn *localShardConnection) ReqRemovePlayerData(chunkLoc ChunkXz, isDiscon
 	})
 }
 
-func (conn *localShardConnection) ReqSetPlayerPositionLook(chunkLoc ChunkXz, position AbsXyz, look LookBytes, moved bool) {
+func (conn *localShardConnection) ReqSetPlayerPositionLook(chunkLoc ChunkXz, position AbsXyz, look LookDegrees, moved bool) {
 	conn.shard.EnqueueOnChunk(chunkLoc, func(chunk *Chunk) {
 		chunk.reqSetPlayerPositionLook(conn.entityId, position, look, moved)
 	})
@@ -76,7 +77,7 @@ func (conn *localShardConnection) ReqSetPlayerPositionLook(chunkLoc ChunkXz, pos
 
 func (conn *localShardConnection) ReqHitBlock(held slot.Slot, target BlockXyz, digStatus DigStatus, face Face) {
 	chunkLoc := target.ToChunkXz()
-
+	log.Println("target", target)
 	conn.shard.EnqueueOnChunk(*chunkLoc, func(chunk *Chunk) {
 		chunk.reqHitBlock(conn.player, held, digStatus, &target, face)
 	})
