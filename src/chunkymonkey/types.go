@@ -64,8 +64,8 @@ func (e EntityId) GetEntityId() EntityId {
 	return e
 }
 
-func (e EntityId) SetEntityId(entityId EntityId) {
-	e = entityId
+func (e *EntityId) SetEntityId(entityId EntityId) {
+	*e = entityId
 }
 
 // The type of mob

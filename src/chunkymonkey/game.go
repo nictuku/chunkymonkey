@@ -115,9 +115,11 @@ func (game *Game) login(conn net.Conn) {
 
 	startPosition := game.worldStore.StartPosition
 
+	entityId := game.entityManager.NewEntity()
+
 	// TODO pass player's last position in the world, not necessarily the spawn
 	// position.
-	player := player.NewPlayer(game.chunkManager, game.gameRules.Recipes, conn, username, startPosition, game.playerDisconnect)
+	player := player.NewPlayer(entityId, game.chunkManager, game.gameRules.Recipes, conn, username, startPosition, game.playerDisconnect)
 
 	addedChan := make(chan struct{})
 	game.enqueue(func(_ *Game) {
@@ -157,9 +159,7 @@ func (game *Game) Serve(addr string) {
 // addPlayer sends spawn messages to all players in range. It also spawns all
 // existing players so the new player can see them.
 func (game *Game) addPlayer(newPlayer *player.Player) {
-	entity := game.entityManager.NewEntity()
-	newPlayer.SetEntityId(entity)
-	game.players[entity] = newPlayer
+	game.players[newPlayer.GetEntityId()] = newPlayer
 }
 
 func (game *Game) removePlayer(entityId EntityId) {

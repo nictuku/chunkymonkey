@@ -52,8 +52,9 @@ type Player struct {
 	onDisconnect chan<- EntityId
 }
 
-func NewPlayer(shardConnecter stub.IShardConnecter, recipes *recipe.RecipeSet, conn net.Conn, name string, position AbsXyz, onDisconnect chan<- EntityId) *Player {
+func NewPlayer(entityId EntityId, shardConnecter stub.IShardConnecter, recipes *recipe.RecipeSet, conn net.Conn, name string, position AbsXyz, onDisconnect chan<- EntityId) *Player {
 	player := &Player{
+		EntityId:       entityId,
 		shardConnecter: shardConnecter,
 		conn:           conn,
 		name:           name,
