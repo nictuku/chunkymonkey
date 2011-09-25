@@ -34,7 +34,7 @@ func testPacketSerial(t *testing.T, inputPkt, outputPkt interface{}, expectedSer
 	}
 }
 
-func TestPacketLogin(t *testing.T) {
+func Test_PacketLogin(t *testing.T) {
 	testPacketSerial(
 		t,
 		&PacketLogin{},
@@ -59,4 +59,99 @@ func TestPacketLogin(t *testing.T) {
 			"\x0c"+ // MaxPlayers
 			""),
 	)
+}
+
+func Test_PacketUseEntity(t *testing.T) {
+	testPacketSerial(
+		t,
+		&PacketUseEntity{},
+		&PacketUseEntity{
+			User: 2,
+			Target: 5,
+			LeftClick: true,
+		},
+		te.LiteralString(""+
+			"\x00\x00\x00\x02"+
+			"\x00\x00\x00\x05"+
+			"\x01"+
+			""),
+	)
+}
+
+func Test_PacketPlayerPosition(t *testing.T) {
+	testPacketSerial(
+		t,
+		&PacketPlayerPosition{},
+		&PacketPlayerPosition{
+			X: 1, Y1: 2, Y2: 3, Z: 4,
+			OnGround: true,
+		},
+		te.LiteralString(""+
+      "\x3f\xf0\x00\x00\x00\x00\x00\x00"+
+			"\x40\x00\x00\x00\x00\x00\x00\x00"+
+			"\x40\x08\x00\x00\x00\x00\x00\x00"+
+			"\x40\x10\x00\x00\x00\x00\x00\x00"+
+			"\x01"+
+			""),
+	)
+}
+
+func Benchmark_New_WritePacketLogin(b *testing.B) {
+	ps := new(PacketSerializer)
+	output := bytes.NewBuffer(make([]byte, 1024))
+	outputPkt := &PacketLogin{
+		VersionOrEntityId: 5,
+		Username:          "username",
+		MapSeed:           123,
+		GameMode:          1,
+		Dimension:         DimensionNormal,
+		Difficulty:        GameDifficultyNormal,
+		WorldHeight:       128,
+		MaxPlayers:        12,
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		ps.WritePacket(output, outputPkt)
+		output.Reset()
+	}
+}
+
+func Benchmark_Old_WritePacketLogin(b *testing.B) {
+	output := bytes.NewBuffer(make([]byte, 1024))
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		commonWriteLogin(output, 5, "username", 123, 1, DimensionNormal, GameDifficultyNormal, 128, 12)
+		output.Reset()
+	}
+}
+
+func Benchmark_New_WritePacketKeepAlive(b *testing.B) {
+	ps := new(PacketSerializer)
+	output := bytes.NewBuffer(make([]byte, 1024))
+	outputPkt := &PacketKeepAlive{
+		Id: 10,
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		output.Write([]byte{PacketIdKeepAlive})
+		ps.WritePacket(output, outputPkt)
+		output.Reset()
+	}
+}
+
+func Benchmark_Old_WritePacketKeepAlive(b *testing.B) {
+	output := bytes.NewBuffer(make([]byte, 1024))
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		WriteKeepAlive(output, 10)
+		output.Reset()
+	}
 }
