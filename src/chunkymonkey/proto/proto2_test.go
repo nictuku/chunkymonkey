@@ -9,6 +9,13 @@ import (
 	te "testencoding"
 )
 
+const (
+	Float64One   = "\x3f\xf0\x00\x00\x00\x00\x00\x00"
+	Float64Two   = "\x40\x00\x00\x00\x00\x00\x00\x00"
+	Float64Three = "\x40\x08\x00\x00\x00\x00\x00\x00"
+	Float64Four  = "\x40\x10\x00\x00\x00\x00\x00\x00"
+)
+
 func testPacketSerial(t *testing.T, inputPkt, outputPkt interface{}, expectedSerialization te.IBytesMatcher) {
 	ps := new(PacketSerializer)
 
@@ -56,8 +63,7 @@ func Test_PacketLogin(t *testing.T) {
 			"\x00"+ // Dimension
 			"\x02"+ // Difficulty
 			"\x80"+ // WorldHeight
-			"\x0c"+ // MaxPlayers
-			""),
+			"\x0c"), // MaxPlayers
 	)
 }
 
@@ -66,15 +72,14 @@ func Test_PacketUseEntity(t *testing.T) {
 		t,
 		&PacketUseEntity{},
 		&PacketUseEntity{
-			User: 2,
-			Target: 5,
+			User:      2,
+			Target:    5,
 			LeftClick: true,
 		},
 		te.LiteralString(""+
 			"\x00\x00\x00\x02"+
 			"\x00\x00\x00\x05"+
-			"\x01"+
-			""),
+			"\x01"),
 	)
 }
 
@@ -87,12 +92,11 @@ func Test_PacketPlayerPosition(t *testing.T) {
 			OnGround: true,
 		},
 		te.LiteralString(""+
-      "\x3f\xf0\x00\x00\x00\x00\x00\x00"+
-			"\x40\x00\x00\x00\x00\x00\x00\x00"+
-			"\x40\x08\x00\x00\x00\x00\x00\x00"+
-			"\x40\x10\x00\x00\x00\x00\x00\x00"+
-			"\x01"+
-			""),
+			Float64One+
+			Float64Two+
+			Float64Three+
+			Float64Four+
+			"\x01"),
 	)
 }
 
