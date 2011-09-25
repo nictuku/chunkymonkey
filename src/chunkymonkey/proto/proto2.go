@@ -52,8 +52,43 @@ type PacketPlayerPosition struct {
 	OnGround     bool
 }
 
+type PacketEntityMetadata struct {
+	EntityId EntityId
+	Metadata EntityMetadataTable
+}
+
+// IMinecraftMarshaler is the interface by which packet fields (or even whole
+// packets) can customize their serialization. It will only work for
+// struct-based types currently, as a hacky method of optimizing which packet
+// fields are checked for this property.
+// TODO Check if it doesn't really take that long and if it's therefore a
+// pointless optimization.
+type IMarshaler interface {
+	MinecraftUnmarshal(reader io.Reader) (err os.Error)
+	MinecraftMarshal(writer io.Writer) (err os.Error)
+}
+
+// EntityMetadataTable implements IMarshaler.
+type EntityMetadataTable struct {
+	Items []EntityMetadata
+}
+
+func (emt *EntityMetadataTable) MinecraftUnmarshal(reader io.Reader) (err os.Error) {
+	emt.Items, err = readEntityMetadataField(reader)
+	return
+}
+
+func (emt *EntityMetadataTable) MinecraftMarshal(writer io.Writer) (err os.Error) {
+	return writeEntityMetadataField(writer, emt.Items)
+}
+
 // PacketSerializer reads and writes packets. It is not safe to use one
 // simultaneously between multiple goroutines.
+//
+// It is designed to read and write struct types, and can only handle a few
+// types - it is not a generalized serialization mechanism and isn't intended
+// to be one. It exercises the freedom of having only limited types of packet
+// structure partly for simplicity, and partly to allow for optimizations.
 type PacketSerializer struct {
 	// Scratch space to be able to encode up to 64bit values without allocating.
 	scratch [8]byte
@@ -90,6 +125,12 @@ func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value) (err
 
 	switch kind {
 	case reflect.Struct:
+		valuePtr := value.Addr()
+		if valueMarshaller, ok := valuePtr.Interface().(IMarshaler); ok {
+			// Get the value to read itself.
+			return valueMarshaller.MinecraftUnmarshal(reader)
+		}
+
 		numField := value.NumField()
 		for i := 0; i < numField; i++ {
 			field := value.Field(i)
@@ -200,6 +241,12 @@ func (ps *PacketSerializer) writeData(writer io.Writer, value reflect.Value) (er
 
 	switch kind {
 	case reflect.Struct:
+		valuePtr := value.Addr()
+		if valueMarshaller, ok := valuePtr.Interface().(IMarshaler); ok {
+			// Get the value to write itself.
+			return valueMarshaller.MinecraftMarshal(writer)
+		}
+
 		numField := value.NumField()
 		for i := 0; i < numField; i++ {
 			field := value.Field(i)

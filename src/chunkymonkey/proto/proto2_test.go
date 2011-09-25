@@ -100,10 +100,37 @@ func Test_PacketPlayerPosition(t *testing.T) {
 	)
 }
 
-func Benchmark_New_WritePacketLogin(b *testing.B) {
+func Test_PacketEntityMetadata(t *testing.T) {
+	testPacketSerial(
+		t,
+		&PacketEntityMetadata{},
+		&PacketEntityMetadata{
+			EntityId: 5,
+			Metadata: EntityMetadataTable{
+				Items: []EntityMetadata{
+					EntityMetadata{0, 0, byte(5)},
+				},
+			},
+		},
+		te.LiteralString(""+
+			"\x00\x00\x00\x05"+
+			"\x00\x05"+
+			"\x7f"),
+	)
+}
+
+func benchmarkPacket(b *testing.B, pkt interface{}) {
+	output := bytes.NewBuffer(make([]byte, 0, 1024))
 	ps := new(PacketSerializer)
-	output := bytes.NewBuffer(make([]byte, 1024))
-	outputPkt := &PacketLogin{
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ps.WritePacket(output, pkt)
+		output.Reset()
+	}
+}
+
+func Benchmark_New_WritePacketLogin(b *testing.B) {
+	benchmarkPacket(b, &PacketLogin{
 		VersionOrEntityId: 5,
 		Username:          "username",
 		MapSeed:           123,
@@ -112,18 +139,11 @@ func Benchmark_New_WritePacketLogin(b *testing.B) {
 		Difficulty:        GameDifficultyNormal,
 		WorldHeight:       128,
 		MaxPlayers:        12,
-	}
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		ps.WritePacket(output, outputPkt)
-		output.Reset()
-	}
+	})
 }
 
 func Benchmark_Old_WritePacketLogin(b *testing.B) {
-	output := bytes.NewBuffer(make([]byte, 1024))
+	output := bytes.NewBuffer(make([]byte, 0, 1024))
 
 	b.ResetTimer()
 
@@ -134,23 +154,13 @@ func Benchmark_Old_WritePacketLogin(b *testing.B) {
 }
 
 func Benchmark_New_WritePacketKeepAlive(b *testing.B) {
-	ps := new(PacketSerializer)
-	output := bytes.NewBuffer(make([]byte, 1024))
-	outputPkt := &PacketKeepAlive{
+	benchmarkPacket(b, &PacketKeepAlive{
 		Id: 10,
-	}
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		output.Write([]byte{PacketIdKeepAlive})
-		ps.WritePacket(output, outputPkt)
-		output.Reset()
-	}
+	})
 }
 
 func Benchmark_Old_WritePacketKeepAlive(b *testing.B) {
-	output := bytes.NewBuffer(make([]byte, 1024))
+	output := bytes.NewBuffer(make([]byte, 0, 1024))
 
 	b.ResetTimer()
 
@@ -158,4 +168,15 @@ func Benchmark_Old_WritePacketKeepAlive(b *testing.B) {
 		WriteKeepAlive(output, 10)
 		output.Reset()
 	}
+}
+
+func Benchmark_New_WritePacketEntityMetadata(b *testing.B) {
+	benchmarkPacket(b, &PacketEntityMetadata{
+		EntityId: 5,
+		Metadata: EntityMetadataTable{
+			Items: []EntityMetadata{
+				EntityMetadata{0, 0, byte(5)},
+			},
+		},
+	})
 }
