@@ -1,7 +1,7 @@
 // The testencoding package is used in testing serialization and
 // deserialization. It is particularly useful when some sub-sequences of bytes
 // can acceptably be written in any order (e.g if they are generated from
-// representations that do not provide order guaruntees like maps).
+// representations that do not provide order guarantees like maps).
 package testencoding
 
 import (
