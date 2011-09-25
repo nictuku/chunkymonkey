@@ -41,20 +41,217 @@ type PacketHandshake struct {
 	UsernameOrHash string
 }
 
+type PacketChatMessage struct {
+	Message string
+}
+
+type PacketTimeUpdate struct {
+	Time Ticks
+}
+
+type PacketEntityEquipment struct {
+	EntityId   EntityId
+	Slot       SlotId
+	ItemTypeId ItemTypeId
+	Data       ItemData
+}
+
+type PacketSpawnPosition struct {
+	X BlockCoord
+	Y int32
+	Z BlockCoord
+}
+
 type PacketUseEntity struct {
 	User      EntityId
 	Target    EntityId
 	LeftClick bool
 }
 
+type PacketUpdateHealth struct {
+	Health         Health
+	Food           FoodUnits
+	FoodSaturation float32
+}
+
+type PacketRespawn struct {
+	Dimension   DimensionId
+	Difficulty  GameDifficulty
+	GameType    GameType
+	WorldHeight int16
+	MapSeed     RandomSeed
+}
+
+type PacketOnGround struct {
+	OnGround bool
+}
+
 type PacketPlayerPosition struct {
+	X, Y, Stance, Z AbsCoord
+	OnGround        bool
+}
+
+type PacketPlayerLook struct {
+	Look LookDegrees
+}
+
+type PacketPlayerPositionLook struct {
 	X, Y1, Y2, Z AbsCoord
+	Look         LookDegrees
 	OnGround     bool
+}
+
+type PacketPlayerBlockHit struct {
+	Status   DigStatus
+	Position BlockXyz
+	Face     Face
+}
+
+type PacketPlayerBlockInteract struct {
+	Position BlockXyz
+	Face     Face
+	Tool     ItemSlot
+}
+
+type PacketPlayerHoldingChange struct {
+	SlotId SlotId
+}
+
+type PacketPlayerUseBed struct {
+	EntityId EntityId
+	Flag     byte
+	Position BlockXyz
+}
+
+type PacketEntityAnimation struct {
+	EntityId  EntityId
+	Animation EntityAnimation
+}
+
+type PacketEntityAction struct {
+	EntityId EntityId
+	Action   EntityAction
+}
+
+type PacketNamedEntitySpawn struct {
+	EntityId    EntityId
+	Username    string
+	Position    AbsIntXyz
+	Rotation    LookBytes
+	CurrentItem ItemTypeId
+}
+
+type PacketItemSpawn struct {
+	EntityId    EntityId
+	ItemTypeId  ItemTypeId
+	Count       ItemCount
+	Data        ItemData
+	Position    AbsIntXyz
+	Orientation OrientationBytes
+}
+
+type PacketItemCollect struct {
+	CollectedItem EntityId
+	Collector     EntityId
+}
+
+type PacketObjectSpawn struct {
+	EntityId EntityId
+	ObjType  ObjTypeId
+	Position AbsIntXyz
+}
+
+type PacketMobSpawn struct {
+	EntityId EntityId
+	MobType  EntityMobType
+	Position AbsIntXyz
+	Look     LookBytes
+}
+
+type PacketPaintingSpawn struct {
+	EntityId EntityId
+	Title    string
+	Position AbsIntXyz
+	SideFace SideFace
+}
+
+type PacketExperienceOrb struct {
+	EntityId EntityId
+	Position AbsIntXyz
+	Count    int16
+}
+
+type PacketEntityVelocity struct {
+	EntityId EntityId
+	Velocity Velocity
+}
+
+type PacketEntityDestroy struct {
+	EntityId EntityId
+}
+
+type PacketEntity struct {
+	EntityId EntityId
+}
+
+type PacketEntityRelMove struct {
+	EntityId EntityId
+	Move     RelMove
+}
+
+type PacketEntityLook struct {
+	EntityId EntityId
+	Look     LookBytes
+}
+
+type PacketEntityLookAndRelMove struct {
+	EntityId EntityId
+	Move     RelMove
+	Look     LookBytes
+}
+
+type PacketEntityTeleport struct {
+	EntityId EntityId
+	Position AbsIntXyz
+	Look     LookBytes
+}
+
+type PacketEntityStatus struct {
+	EntityId EntityId
+	Status   EntityStatus
+}
+
+type PacketEntityAttach struct {
+	EntityId  EntityId
+	VehicleId EntityId
 }
 
 type PacketEntityMetadata struct {
 	EntityId EntityId
 	Metadata EntityMetadataTable
+}
+
+type PacketEntityEffect struct {
+	EntityId EntityId
+	Effect   EntityEffect
+	Value    int8
+	Duration int16
+}
+
+type PacketEntityRemoveEffect struct {
+	EntityId EntityId
+	Effect   EntityEffect
+}
+
+type PacketExperience struct {
+	Experience      int8
+	Level           int8
+	TotalExperience int16
+}
+
+type PacketPreChunk struct {
+	ChunkLoc ChunkXz
+	Mode     ChunkLoadMode
 }
 
 // IMinecraftMarshaler is the interface by which packet fields (or even whole
@@ -82,8 +279,54 @@ func (emt *EntityMetadataTable) MinecraftMarshal(writer io.Writer) (err os.Error
 	return writeEntityMetadataField(writer, emt.Items)
 }
 
+// ItemSlot implements IMarshaler.
+type ItemSlot struct {
+	ItemTypeId ItemTypeId
+	Count      ItemCount
+	Data       ItemData
+}
+
+func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader) (err os.Error) {
+	if err = binary.Read(reader, binary.BigEndian, &is.ItemTypeId); err != nil {
+		return
+	}
+
+	if is.ItemTypeId == -1 {
+		is.Count = 0
+		is.Data = 0
+	} else {
+		var data struct {
+			Count ItemCount
+			Data  ItemData
+		}
+		if err = binary.Read(reader, binary.BigEndian, &data); err != nil {
+			return
+		}
+
+		is.Count = data.Count
+		is.Data = data.Data
+	}
+	return
+}
+
+func (is *ItemSlot) MinecraftMarshal(writer io.Writer) (err os.Error) {
+	if is.ItemTypeId == -1 {
+		if err = binary.Write(writer, binary.BigEndian, &is.ItemTypeId); err != nil {
+			return
+		}
+	} else {
+		if err = binary.Write(writer, binary.BigEndian, is); err != nil {
+			return
+		}
+	}
+	return
+}
+
 // PacketSerializer reads and writes packets. It is not safe to use one
 // simultaneously between multiple goroutines.
+//
+// It does not take responsibility for reading/writing the packet ID byte
+// header. TODO Should it?
 //
 // It is designed to read and write struct types, and can only handle a few
 // types - it is not a generalized serialization mechanism and isn't intended

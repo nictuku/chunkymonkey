@@ -10,6 +10,9 @@ import (
 )
 
 const (
+	Float32One = "\x3f\x80\x00\x00"
+	Float32Two = "\x40\x00\x00\x00"
+
 	Float64One   = "\x3f\xf0\x00\x00\x00\x00\x00\x00"
 	Float64Two   = "\x40\x00\x00\x00\x00\x00\x00\x00"
 	Float64Three = "\x40\x08\x00\x00\x00\x00\x00\x00"
@@ -88,7 +91,7 @@ func Test_PacketPlayerPosition(t *testing.T) {
 		t,
 		&PacketPlayerPosition{},
 		&PacketPlayerPosition{
-			X: 1, Y1: 2, Y2: 3, Z: 4,
+			X: 1, Y: 2, Stance: 3, Z: 4,
 			OnGround: true,
 		},
 		te.LiteralString(""+
@@ -97,6 +100,69 @@ func Test_PacketPlayerPosition(t *testing.T) {
 			Float64Three+
 			Float64Four+
 			"\x01"),
+	)
+}
+
+func Test_PacketPlayerPositionLook(t *testing.T) {
+	testPacketSerial(
+		t,
+		&PacketPlayerPositionLook{},
+		&PacketPlayerPositionLook{
+			X: 1, Y1: 2, Y2: 3, Z: 4,
+			Look:     LookDegrees{Yaw: 1, Pitch: 2},
+			OnGround: true,
+		},
+		te.LiteralString(""+
+			Float64One+
+			Float64Two+
+			Float64Three+
+			Float64Four+
+			Float32One+
+			Float32Two+
+			"\x01"),
+	)
+}
+
+func Test_PacketPlayerBlockInteract(t *testing.T) {
+	testPacketSerial(
+		t,
+		&PacketPlayerBlockInteract{},
+		&PacketPlayerBlockInteract{
+			Position: BlockXyz{1, 2, 3},
+			Face:     2,
+			Tool: ItemSlot{
+				ItemTypeId: 1,
+				Count:      2,
+				Data:       3,
+			},
+		},
+		te.LiteralString(""+
+			"\x00\x00\x00\x01"+
+			"\x02"+
+			"\x00\x00\x00\x03"+
+			"\x02"+
+			"\x00\x01"+
+			"\x02"+
+			"\x00\x03"),
+	)
+
+	// Test with last two fields missing (no tool used).
+	testPacketSerial(
+		t,
+		&PacketPlayerBlockInteract{},
+		&PacketPlayerBlockInteract{
+			Position: BlockXyz{1, 2, 3},
+			Face:     2,
+			Tool: ItemSlot{
+				ItemTypeId: -1,
+			},
+		},
+		te.LiteralString(""+
+			"\x00\x00\x00\x01"+
+			"\x02"+
+			"\x00\x00\x00\x03"+
+			"\x02"+
+			"\xff\xff"),
 	)
 }
 
@@ -121,7 +187,7 @@ func Test_PacketEntityMetadata(t *testing.T) {
 
 func benchmarkPacket(b *testing.B, pkt interface{}) {
 	output := bytes.NewBuffer(make([]byte, 0, 1024))
-	ps := new(PacketSerializer)
+	var ps PacketSerializer
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		ps.WritePacket(output, pkt)
