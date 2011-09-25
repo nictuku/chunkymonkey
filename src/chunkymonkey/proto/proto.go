@@ -56,6 +56,7 @@ const (
 	PacketIdEntityLookAndRelMove = 0x21
 	PacketIdEntityTeleport       = 0x22
 	PacketIdEntityStatus         = 0x26
+	PacketIdEntityAttach         = 0x27
 	PacketIdEntityMetadata       = 0x28
 	PacketIdEntityEffect         = 0x29
 	PacketIdEntityRemoveEffect   = 0x2a
@@ -149,7 +150,7 @@ type IClientPacketHandler interface {
 	PacketItemCollect(collectedItem EntityId, collector EntityId)
 	PacketObjectSpawn(entityId EntityId, objType ObjTypeId, position *AbsIntXyz, objectData *ObjectData)
 	PacketEntitySpawn(entityId EntityId, mobType EntityMobType, position *AbsIntXyz, look *LookBytes, data []EntityMetadata)
-	PacketPaintingSpawn(entityId EntityId, title string, position *BlockXyz, paintingType PaintingTypeId)
+	PacketPaintingSpawn(entityId EntityId, title string, position *BlockXyz, sideFace SideFace)
 	PacketExperienceOrb(entityId EntityId, position AbsIntXyz, count int16)
 	PacketEntityVelocity(entityId EntityId, velocity *Velocity)
 	PacketEntityDestroy(entityId EntityId)
@@ -158,6 +159,7 @@ type IClientPacketHandler interface {
 	PacketEntityLook(entityId EntityId, look *LookBytes)
 	PacketEntityTeleport(entityId EntityId, position *AbsIntXyz, look *LookBytes)
 	PacketEntityStatus(entityId EntityId, status EntityStatus)
+	PacketEntityAttach(entityId EntityId, vehicleId EntityId)
 	PacketEntityMetadata(entityId EntityId, metadata []EntityMetadata)
 	PacketEntityEffect(entityId EntityId, effect EntityEffect, value int8, duration int16)
 	PacketEntityRemoveEffect(entityId EntityId, effect EntityEffect)
@@ -746,18 +748,18 @@ func readUpdateHealth(reader io.Reader, handler IClientPacketHandler) (err os.Er
 
 // PacketIdRespawn
 
-func WriteRespawn(writer io.Writer, dimension DimensionId, unknown int8, gameType GameType, worldHeight int16, mapSeed RandomSeed) os.Error {
+func WriteRespawn(writer io.Writer, dimension DimensionId, difficulty GameDifficulty, gameType GameType, worldHeight int16, mapSeed RandomSeed) os.Error {
 	var packet = struct {
 		PacketId    byte
 		Dimension   DimensionId
-		Unknown     int8
+		Difficulty  GameDifficulty
 		GameType    GameType
 		WorldHeight int16
 		MapSeed     RandomSeed
 	}{
 		PacketIdRespawn,
 		dimension,
-		unknown,
+		difficulty,
 		gameType,
 		worldHeight,
 		mapSeed,
@@ -1504,7 +1506,7 @@ func readEntitySpawn(reader io.Reader, handler IClientPacketHandler) (err os.Err
 
 // PacketIdPaintingSpawn
 
-func WritePaintingSpawn(writer io.Writer, entityId EntityId, title string, position *BlockXyz, paintingType PaintingTypeId) (err os.Error) {
+func WritePaintingSpawn(writer io.Writer, entityId EntityId, title string, position *BlockXyz, sideFace SideFace) (err os.Error) {
 	if err = binary.Write(writer, binary.BigEndian, &entityId); err != nil {
 		return
 	}
@@ -1514,11 +1516,11 @@ func WritePaintingSpawn(writer io.Writer, entityId EntityId, title string, posit
 	}
 
 	var packetEnd = struct {
-		X, Y, Z      BlockCoord
-		PaintingType PaintingTypeId
+		X, Y, Z  BlockCoord
+		SideFace SideFace
 	}{
 		position.X, BlockCoord(position.Y), position.Z,
-		paintingType,
+		sideFace,
 	}
 
 	return binary.Write(writer, binary.BigEndian, &packetEnd)
@@ -1537,8 +1539,8 @@ func readPaintingSpawn(reader io.Reader, handler IClientPacketHandler) (err os.E
 	}
 
 	var packetEnd struct {
-		X, Y, Z      BlockCoord
-		PaintingType PaintingTypeId
+		X, Y, Z  BlockCoord
+		SideFace SideFace
 	}
 
 	err = binary.Read(reader, binary.BigEndian, &packetEnd)
@@ -1550,7 +1552,7 @@ func readPaintingSpawn(reader io.Reader, handler IClientPacketHandler) (err os.E
 		entityId,
 		title,
 		&BlockXyz{packetEnd.X, BlockYCoord(packetEnd.Y), packetEnd.Z},
-		packetEnd.PaintingType)
+		packetEnd.SideFace)
 
 	return
 }
@@ -1880,6 +1882,38 @@ func readEntityStatus(reader io.Reader, handler IClientPacketHandler) (err os.Er
 	}
 
 	handler.PacketEntityStatus(packet.EntityId, packet.Status)
+
+	return
+}
+
+// PacketIdEntityAttach
+
+func WriteEntityAttach(writer io.Writer, entityId EntityId, vehicleId EntityId) (err os.Error) {
+	var packet = struct {
+		PacketId  byte
+		EntityId  EntityId
+		VehicleId EntityId
+	}{
+		PacketIdEntityAttach,
+		entityId,
+		vehicleId,
+	}
+
+	return binary.Write(writer, binary.BigEndian, &packet)
+}
+
+func readEntityAttach(reader io.Reader, handler IClientPacketHandler) (err os.Error) {
+	var packet struct {
+		PacketId  byte
+		EntityId  EntityId
+		VehicleId EntityId
+	}
+
+	if err = binary.Read(reader, binary.BigEndian, &packet); err != nil {
+		return
+	}
+
+	handler.PacketEntityAttach(packet.EntityId, packet.VehicleId)
 
 	return
 }
@@ -3149,6 +3183,7 @@ var clientReadFns = clientPacketReaderMap{
 	PacketIdEntityLookAndRelMove: readEntityLookAndRelMove,
 	PacketIdEntityTeleport:       readEntityTeleport,
 	PacketIdEntityStatus:         readEntityStatus,
+	PacketIdEntityAttach:         readEntityAttach,
 	PacketIdEntityMetadata:       readEntityMetadata,
 	PacketIdEntityEffect:         readEntityEffect,
 	PacketIdEntityRemoveEffect:   readEntityRemoveEffect,

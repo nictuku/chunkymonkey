@@ -164,9 +164,9 @@ func (p *MessageParser) PacketEntitySpawn(entityId EntityId, mobType EntityMobTy
 		entityId, mobType, position, look, metadata)
 }
 
-func (p *MessageParser) PacketPaintingSpawn(entityId EntityId, title string, position *BlockXyz, paintingType PaintingTypeId) {
-	p.printf("PacketPaintingSpawn(entityId=%d, title=%q, position=%v, paintingType=%d)",
-		entityId, title, position, position, paintingType)
+func (p *MessageParser) PacketPaintingSpawn(entityId EntityId, title string, position *BlockXyz, sideFace SideFace) {
+	p.printf("PacketPaintingSpawn(entityId=%d, title=%q, position=%v, sideFace=%d)",
+		entityId, title, position, position, sideFace)
 }
 
 func (p *MessageParser) PacketExperienceOrb(entityId EntityId, position AbsIntXyz, count int16) {
@@ -205,6 +205,11 @@ func (p *MessageParser) PacketEntityTeleport(entityId EntityId, position *AbsInt
 func (p *MessageParser) PacketEntityStatus(entityId EntityId, status EntityStatus) {
 	p.printf("PacketEntityStatus(entityId=%d, status=%d)",
 		entityId, status)
+}
+
+func (p *MessageParser) PacketEntityAttach(entityId EntityId, vehicleId EntityId) {
+	p.printf("PacketEntityAttach(entityId=%d, vehicleId=%d)",
+		entityId, vehicleId)
 }
 
 func (p *MessageParser) PacketEntityMetadata(entityId EntityId, metadata []proto.EntityMetadata) {

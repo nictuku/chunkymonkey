@@ -126,12 +126,20 @@ var MobNameByType = map[EntityMobType]string{}
 
 type EntityStatus byte
 
+const (
+	EntityStatusHurt     = EntityStatus(2)
+	EntityStatusDead     = EntityStatus(3)
+	EntityStatusUnknown1 = EntityStatus(4)
+	EntityStatusUnknown2 = EntityStatus(5)
+)
+
 type EntityAnimation byte
 
 const (
 	EntityAnimationNone     = EntityAnimation(0)
 	EntityAnimationSwingArm = EntityAnimation(1)
 	EntityAnimationDamage   = EntityAnimation(2)
+	EntityAnimationLeaveBed = EntityAnimation(3)
 	EntityAnimationUnknown1 = EntityAnimation(102)
 	EntityAnimationCrouch   = EntityAnimation(104)
 	EntityAnimationUncrouch = EntityAnimation(105)
@@ -165,8 +173,11 @@ const (
 type EntityAction byte
 
 const (
-	EntityActionCrouch   = EntityAction(1)
-	EntityActionUncrouch = EntityAction(2)
+	EntityActionCrouch        = EntityAction(1)
+	EntityActionUncrouch      = EntityAction(2)
+	EntityActionLeaveBed      = EntityAction(3)
+	EntityActionStartSprint   = EntityAction(4)
+	EntityActionStartUnsprint = EntityAction(5)
 )
 
 type ObjTypeId int8
@@ -275,6 +286,31 @@ func (f Face) Dxyz() (dx BlockCoord, dy BlockYCoord, dz BlockCoord) {
 	case FaceNorth:
 		dx = -1
 	case FaceSouth:
+		dx = 1
+	}
+	return
+}
+
+// SideFace - similar to Face, but doesn't include top and bottom
+// faces/directions, and has different IDs.
+type SideFace int8
+
+const (
+	SideFaceEast  = SideFace(0)
+	SideFaceNorth = SideFace(1)
+	SideFaceWest  = SideFace(2)
+	SideFaceSouth = SideFace(3)
+)
+
+func (sf SideFace) Dxz() (dx BlockCoord, dz BlockCoord) {
+	switch sf {
+	case SideFaceEast:
+		dz = -1
+	case SideFaceWest:
+		dz = 1
+	case SideFaceNorth:
+		dx = -1
+	case SideFaceSouth:
 		dx = 1
 	}
 	return
