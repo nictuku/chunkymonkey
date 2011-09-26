@@ -20,6 +20,7 @@ var (
 	ErrorStrLengthNegative = os.NewError("string length was negative")
 	ErrorStrTooLong        = os.NewError("string was too long")
 	ErrorBadPacketData     = os.NewError("packet data well-formed but contains out of range values")
+	ErrorBadChunkDataSize  = os.NewError("map chunk data length mismatches with size")
 	ErrorInternal          = os.NewError("implementation problem with packetization")
 )
 
@@ -265,10 +266,7 @@ type PacketPreChunk struct {
 
 type PacketMapChunk struct {
 	Corner BlockXyz
-	Size struct {
-		X, Y, Z byte
-	}
-	Data ChunkData
+	Data   ChunkData
 }
 
 // IMinecraftMarshaler is the interface by which packet fields (or even whole
@@ -278,8 +276,8 @@ type PacketMapChunk struct {
 // TODO Check if it doesn't really take that long and if it's therefore a
 // pointless optimization.
 type IMarshaler interface {
-	MinecraftUnmarshal(reader io.Reader, parent interface{}) (err os.Error)
-	MinecraftMarshal(writer io.Writer) (err os.Error)
+	MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error)
+	MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error)
 }
 
 // EntityMetadataTable implements IMarshaler.
@@ -287,12 +285,12 @@ type EntityMetadataTable struct {
 	Items []EntityMetadata
 }
 
-func (emt *EntityMetadataTable) MinecraftUnmarshal(reader io.Reader, parent interface{}) (err os.Error) {
+func (emt *EntityMetadataTable) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
 	emt.Items, err = readEntityMetadataField(reader)
 	return
 }
 
-func (emt *EntityMetadataTable) MinecraftMarshal(writer io.Writer) (err os.Error) {
+func (emt *EntityMetadataTable) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
 	return writeEntityMetadataField(writer, emt.Items)
 }
 
@@ -303,7 +301,7 @@ type ItemSlot struct {
 	Data       ItemData
 }
 
-func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader, parent interface{}) (err os.Error) {
+func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
 	if err = binary.Read(reader, binary.BigEndian, &is.ItemTypeId); err != nil {
 		return
 	}
@@ -326,7 +324,7 @@ func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader, parent interface{}) (er
 	return
 }
 
-func (is *ItemSlot) MinecraftMarshal(writer io.Writer) (err os.Error) {
+func (is *ItemSlot) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
 	if is.ItemTypeId == -1 {
 		if err = binary.Write(writer, binary.BigEndian, &is.ItemTypeId); err != nil {
 			return
@@ -339,16 +337,20 @@ func (is *ItemSlot) MinecraftMarshal(writer io.Writer) (err os.Error) {
 	return
 }
 
-// MapData implements IMarshaler.
+// ChunkData implements IMarshaler.
 type ChunkData struct {
+	Size ChunkDataSize
 	Data []byte
 }
 
-func (cd *ChunkData) MinecraftUnmarshal(reader io.Reader, parent interface{}) (err os.Error) {
-	mapChunk, ok := parent.(*PacketMapChunk)
-	if !ok {
-		log.Printf("ChunkData field used inside a %t, expected *PacketMapChunk", parent)
-		return ErrorInternal
+// ChunkDataSize contains the dimensions of the data represented inside ChunkData.
+type ChunkDataSize struct {
+	X, Y, Z byte
+}
+
+func (cd *ChunkData) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
+	if err = ps.readData(reader, reflect.Indirect(reflect.ValueOf(&cd.Size))); err != nil {
+		return
 	}
 
 	var length int32
@@ -362,29 +364,43 @@ func (cd *ChunkData) MinecraftUnmarshal(reader io.Reader, parent interface{}) (e
 	}
 	defer zReader.Close()
 
-	numBlocks := (mapChunk.Size.X+1) * (mapChunk.Size.Y+1) * (mapChunk.Size.Z+1)
+	numBlocks := (int(cd.Size.X) + 1) * (int(cd.Size.Y) + 1) * (int(cd.Size.Z) + 1)
 	expectedNumDataBytes := numBlocks + 3*(numBlocks>>1)
 	cd.Data = make([]byte, expectedNumDataBytes)
-	if _, err = io.ReadFull(reader, cd.Data); err != nil {
+	if _, err = io.ReadFull(zReader, cd.Data); err != nil {
 		return
 	}
 
 	// Check that we're at the end of the compressed data to be sure of being in
 	// sync with packet stream..
-	n, err := reader.Read(dump[:])
-	if err != os.EOF {
-		return err
+	n, err := io.ReadFull(zReader, dump[:])
+	if err == os.EOF {
+		err = nil
+		if n > 0 {
+			log.Printf("Unexpected extra chunk data byte of %d bytes", n)
+		}
 	} else if err == nil {
 		log.Printf("Unexpected extra chunk data byte of at least %d bytes - assuming bad packet stream", n)
 		return ErrorBadPacketData
-	} else if err == os.EOF && n > 0 {
-		log.Printf("Unexpected extra chunk data byte of %d bytes", n)
+	} else {
+		// Other error.
+		return err
 	}
 
-	return
+	return nil
 }
 
-func (cd *ChunkData) MinecraftMarshal(writer io.Writer) (err os.Error) {
+func (cd *ChunkData) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
+	if err = ps.writeData(writer, reflect.Indirect(reflect.ValueOf(&cd.Size))); err != nil {
+		return
+	}
+
+	numBlocks := (int(cd.Size.X) + 1) * (int(cd.Size.Y) + 1) * (int(cd.Size.Z) + 1)
+	expectedNumDataBytes := numBlocks + 3*(numBlocks>>1)
+	if len(cd.Data) != expectedNumDataBytes {
+		return ErrorBadChunkDataSize
+	}
+
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
 
 	zWriter, err := zlib.NewWriter(buf)
@@ -421,18 +437,6 @@ type PacketSerializer struct {
 	scratch [8]byte
 }
 
-func (ps *PacketSerializer) readUint8(reader io.Reader) (v uint8, err os.Error) {
-	if _, err = io.ReadFull(reader, ps.scratch[0:1]); err != nil {
-		return
-	}
-	return ps.scratch[0], nil
-}
-
-func (ps *PacketSerializer) readInt8(reader io.Reader) (v int8, err os.Error) {
-	uv, err := ps.readUint8(reader)
-	return int8(uv), err
-}
-
 func (ps *PacketSerializer) ReadPacket(reader io.Reader, packet interface{}) (err os.Error) {
 	// TODO Check packet is CanSettable? (if settable at the top, does that
 	// follow for all its descendants?)
@@ -444,10 +448,10 @@ func (ps *PacketSerializer) ReadPacket(reader io.Reader, packet interface{}) (er
 		return ErrorPacketNil
 	}
 
-	return ps.readData(reader, reflect.Indirect(value), reflect.ValueOf(nil))
+	return ps.readData(reader, reflect.Indirect(value))
 }
 
-func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value, parentValue reflect.Value) (err os.Error) {
+func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value) (err os.Error) {
 	kind := value.Kind()
 
 	switch kind {
@@ -455,13 +459,13 @@ func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value, pare
 		valuePtr := value.Addr()
 		if valueMarshaller, ok := valuePtr.Interface().(IMarshaler); ok {
 			// Get the value to read itself.
-			return valueMarshaller.MinecraftUnmarshal(reader, parentValue.Interface())
+			return valueMarshaller.MinecraftUnmarshal(reader, ps)
 		}
 
 		numField := value.NumField()
 		for i := 0; i < numField; i++ {
 			field := value.Field(i)
-			if err = ps.readData(reader, field, value); err != nil {
+			if err = ps.readData(reader, field); err != nil {
 				return
 			}
 		}
@@ -571,7 +575,7 @@ func (ps *PacketSerializer) writeData(writer io.Writer, value reflect.Value) (er
 		valuePtr := value.Addr()
 		if valueMarshaller, ok := valuePtr.Interface().(IMarshaler); ok {
 			// Get the value to write itself.
-			return valueMarshaller.MinecraftMarshal(writer)
+			return valueMarshaller.MinecraftMarshal(writer, ps)
 		}
 
 		numField := value.NumField()

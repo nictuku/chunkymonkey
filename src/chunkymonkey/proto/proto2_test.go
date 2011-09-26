@@ -185,12 +185,56 @@ func Test_PacketEntityMetadata(t *testing.T) {
 	)
 }
 
+func Test_PacketMapChunk(t *testing.T) {
+	testPacketSerial(
+		t,
+		&PacketMapChunk{},
+		&PacketMapChunk{
+			Corner: BlockXyz{16, 0, 32},
+			Data: ChunkData{
+				Size: ChunkDataSize{0, 1, 2},
+				Data: []byte{
+					1, 2, 3, 4, 5, 6, // Block IDs.
+					1, 2, 3, // Block data.
+					4, 5, 6, // Block light.
+					7, 8, 9, // Sky light.
+				},
+			},
+		},
+		te.InOrder(
+			te.LiteralString(""+ // {16, 0, 32}
+				"\x00\x00\x00\x10"+
+				"\x00"+
+				"\x00\x00\x00\x20"),
+			// TODO This really should use zlib library to read the output data.
+			// Literal is somewhat fragile to underlying harmless changes.
+			te.LiteralString(""+
+				"\x00\x01\x02"),
+			te.LiteralString(""+
+				"\x00\x00\x00\x17"+
+				"\x78\x9c\x62\x64\x62\x66\x61\x65\x83\x90\xec\x1c"+
+				"\x9c\x80\x00\x00\x00\xff\xff\x01\xa9\x00\x43"),
+		),
+	)
+}
+
+func Benchmark_writeString16(b *testing.B) {
+	output := bytes.NewBuffer(make([]byte, 0, 1024))
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_ = writeString16(output, "username")
+		output.Reset()
+	}
+}
+
 func benchmarkPacket(b *testing.B, pkt interface{}) {
 	output := bytes.NewBuffer(make([]byte, 0, 1024))
 	var ps PacketSerializer
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		ps.WritePacket(output, pkt)
+		_ = ps.WritePacket(output, pkt)
 		output.Reset()
 	}
 }
@@ -214,7 +258,7 @@ func Benchmark_Old_WritePacketLogin(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		commonWriteLogin(output, 5, "username", 123, 1, DimensionNormal, GameDifficultyNormal, 128, 12)
+		_ = commonWriteLogin(output, 5, "username", 123, 1, DimensionNormal, GameDifficultyNormal, 128, 12)
 		output.Reset()
 	}
 }
@@ -231,7 +275,7 @@ func Benchmark_Old_WritePacketKeepAlive(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		WriteKeepAlive(output, 10)
+		_ = WriteKeepAlive(output, 10)
 		output.Reset()
 	}
 }
