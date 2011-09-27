@@ -169,6 +169,7 @@ func (w *PlayerInventory) UnmarshalNbt(tag nbt.ITag) (err os.Error) {
 		case playerInvHoldingNum <= slotId && slotId < (playerInvHoldingNum+playerInvMainNum):
 			inv = &w.main
 			invSlotId = slotId - playerInvHoldingNum
+			// TODO Handle 80-83 - 2x2 crafting area.
 		case 100 <= slotId && slotId <= 103:
 			inv = &w.armor
 			invSlotId = 103 - slotId
