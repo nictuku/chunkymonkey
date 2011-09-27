@@ -489,6 +489,9 @@ const (
 	ChunkHMask = ChunkSizeH - 1
 	ChunkYMask = ChunkSizeY - 1
 
+	// Similar to ChunkYShift, but for multi-block-change packet packed coords.
+	ChunkMultiBlockYShift = 8
+
 	// The area within which a client receives updates.
 	ChunkRadius = 10
 	// The radius in which all chunks must be sent before completing a client's
@@ -710,6 +713,30 @@ func (bi BlockIndex) ToSubChunkXyz() (subLoc SubChunkXyz) {
 	bi >>= ChunkHShift
 	subLoc.X = SubChunkCoord(bi & ChunkHMask)
 	return
+}
+
+// Converts to the coordinate value used in multi-block-change packets (0x34).
+func (bi BlockIndex) ToMultiBlockIndex() int16 {
+	y := int16(bi & ChunkYMask)
+	bi >>= ChunkYShift
+	z := int16(bi & ChunkHMask)
+	bi >>= ChunkHShift
+	x := int16(bi & ChunkHMask)
+
+	// The structure is *close* to the block index, but Y takes up 8 bits instead
+	// of 7 (currently).
+	return (((x << ChunkHMask) | z) << ChunkMultiBlockYShift) | y
+}
+
+// Converts to the coordinate value used in multi-block-change packets (0x34).
+func (bi *BlockIndex) SetMultiBlockIndex(coord int16) {
+	y := coord & ChunkYMask
+	coord >>= ChunkMultiBlockYShift
+	z := coord & ChunkHMask
+	coord >>= ChunkHShift
+	x := coord & ChunkHMask
+
+	*bi = BlockIndex((((x << ChunkHMask) | z) << ChunkYShift) | y)
 }
 
 func (bi BlockIndex) BlockId(blocks []byte) BlockId {

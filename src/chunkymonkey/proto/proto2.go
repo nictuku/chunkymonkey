@@ -17,10 +17,11 @@ import (
 var (
 	ErrorPacketNotPtr      = os.NewError("packet not passed as a pointer")
 	ErrorPacketNil         = os.NewError("packet was passed by a nil pointer")
-	ErrorStrLengthNegative = os.NewError("string length was negative")
+	ErrorLengthNegative    = os.NewError("length was negative")
 	ErrorStrTooLong        = os.NewError("string was too long")
 	ErrorBadPacketData     = os.NewError("packet data well-formed but contains out of range values")
 	ErrorBadChunkDataSize  = os.NewError("map chunk data length mismatches with size")
+	ErrorMismatchingValues = os.NewError("packet data contains mismatching values")
 	ErrorInternal          = os.NewError("implementation problem with packetization")
 )
 
@@ -269,6 +270,11 @@ type PacketMapChunk struct {
 	Data   ChunkData
 }
 
+type PacketMultiBlockChange struct {
+	ChunkLoc ChunkXz
+	Changes  MultiBlockChanges
+}
+
 // IMinecraftMarshaler is the interface by which packet fields (or even whole
 // packets) can customize their serialization. It will only work for
 // struct-based types currently, as a hacky method of optimizing which packet
@@ -422,6 +428,68 @@ func (cd *ChunkData) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (e
 	return
 }
 
+// MultiBlockChanges implements IMarshaler.
+type MultiBlockChanges struct {
+	// Coords are packed x,y,z block coordinates relative to a chunk origin. Note
+	// that these differ from the value for BlockIndex, which supplies conversion
+	// methods for this purpose.
+	Coords    []int16
+	TypeIds   []byte
+	BlockData []byte
+}
+
+func (mbc *MultiBlockChanges) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
+	var numBlocks int16
+
+	if err = binary.Read(reader, binary.BigEndian, &numBlocks); err != nil {
+		return
+	}
+
+	if numBlocks < 0 {
+		return ErrorLengthNegative
+	} else if numBlocks == 0 {
+		// Odd case.
+		return nil
+	}
+
+	mbc.Coords = make([]int16, numBlocks)
+	if err = binary.Read(reader, binary.BigEndian, mbc.Coords); err != nil {
+		return
+	}
+
+	mbc.TypeIds = make([]byte, numBlocks)
+	if _, err = io.ReadFull(reader, mbc.TypeIds); err != nil {
+		return
+	}
+
+	mbc.BlockData = make([]byte, numBlocks)
+	_, err = io.ReadFull(reader, mbc.BlockData)
+
+	return
+}
+
+func (mbc *MultiBlockChanges) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
+	numBlocks := len(mbc.Coords)
+	if numBlocks != len(mbc.TypeIds) || numBlocks != len(mbc.BlockData) {
+		return ErrorMismatchingValues
+	}
+
+	if err = binary.Write(writer, binary.BigEndian, int16(numBlocks)); err != nil {
+		return
+	}
+
+	if err = binary.Write(writer, binary.BigEndian, mbc.Coords); err != nil {
+		return
+	}
+
+	if _, err = writer.Write(mbc.TypeIds); err != nil {
+		return
+	}
+
+	_, err = writer.Write(mbc.BlockData)
+	return
+}
+
 // PacketSerializer reads and writes packets. It is not safe to use one
 // simultaneously between multiple goroutines.
 //
@@ -540,7 +608,7 @@ func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value) (err
 		}
 		length := int16(binary.BigEndian.Uint16(ps.scratch[0:2]))
 		if length < 0 {
-			return ErrorStrLengthNegative
+			return ErrorLengthNegative
 		}
 		codepoints := make([]uint16, length)
 		if err = binary.Read(reader, binary.BigEndian, codepoints); err != nil {

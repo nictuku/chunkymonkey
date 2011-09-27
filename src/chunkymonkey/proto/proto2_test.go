@@ -218,6 +218,27 @@ func Test_PacketMapChunk(t *testing.T) {
 	)
 }
 
+func Test_PacketMultiBlockChange(t *testing.T) {
+	testPacketSerial(
+		t,
+		&PacketMultiBlockChange{},
+		&PacketMultiBlockChange{
+			ChunkLoc: ChunkXz{1, 2},
+			Changes: MultiBlockChanges{
+				Coords: []int16{5, 7, 9},
+				TypeIds: []byte{1, 2, 3},
+				BlockData: []byte{4, 5, 6},
+			},
+		},
+		te.LiteralString(""+
+			"\x00\x00\x00\x01\x00\x00\x00\x02"+
+			"\x00\x03"+
+			"\x00\x05\x00\x07\x00\x09"+
+			"\x01\x02\x03"+
+			"\x04\x05\x06"),
+	)
+}
+
 func Benchmark_writeString16(b *testing.B) {
 	output := bytes.NewBuffer(make([]byte, 0, 1024))
 
