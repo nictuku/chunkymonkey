@@ -1879,5 +1879,117 @@
     "AspectArgs": {
       "Comment": "similar to door"
     }
-  }
+  },
+  "108": {
+    "BlockAttrs": {
+      "Name": "Brick Stairs",
+      "Opacity": 0,
+      "Destructable": true,
+      "Solid": true,
+      "Replaceable": false,
+      "Attachable": false
+    },
+    "Aspect": "Todo",
+    "AspectArgs": {
+      "Comment": "Needs placement metadata"
+    }
+  },
+  "109": {
+    "BlockAttrs": {
+      "Name": "Stone Brick Stairs",
+      "Opacity": 0,
+      "Destructable": true,
+      "Solid": true,
+      "Replaceable": false,
+      "Attachable": false
+    },
+    "Aspect": "Todo",
+    "AspectArgs": {
+      "Comment": "Needs placement metadata"
+    }
+  },
+  "110": {
+    "BlockAttrs": {
+      "Name": "Mycelium",
+      "Opacity": 0,
+      "Destructable": true,
+      "Solid": true,
+      "Replaceable": false,
+      "Attachable": false
+    },
+    "Aspect": "Todo",
+    "AspectArgs": {
+      "Comment": "Needs placement metadata"
+    }
+  },
+  "111": {
+    "BlockAttrs": {
+      "Name": "Lily Pad",
+      "Opacity": 0,
+      "Destructable": true,
+      "Solid": true,
+      "Replaceable": false,
+      "Attachable": false
+    },
+    "Aspect": "Todo",
+    "AspectArgs": {
+      "Comment": "Needs placement metadata"
+    }
+  },
+  "112": {
+    "BlockAttrs": {
+      "Name": "Nether Brick",
+      "Opacity": 0,
+      "Destructable": true,
+      "Solid": true,
+      "Replaceable": false,
+      "Attachable": false
+    },
+    "Aspect": "Todo",
+    "AspectArgs": {
+      "Comment": "Needs placement metadata"
+    }
+  },
+  "113": {
+    "BlockAttrs": {
+      "Name": "Nether Brick Fence",
+      "Opacity": 0,
+      "Destructable": true,
+      "Solid": true,
+      "Replaceable": false,
+      "Attachable": false
+    },
+    "Aspect": "Todo",
+    "AspectArgs": {
+      "Comment": "Needs placement metadata"
+    }
+  },
+  "114": {
+    "BlockAttrs": {
+      "Name": "Nether Brick Stairs",
+      "Opacity": 0,
+      "Destructable": true,
+      "Solid": true,
+      "Replaceable": false,
+      "Attachable": false
+    },
+    "Aspect": "Todo",
+    "AspectArgs": {
+      "Comment": "Needs placement metadata"
+    }
+  },
+  "115": {
+    "BlockAttrs": {
+      "Name": "Nether Wart",
+      "Opacity": 0,
+      "Destructable": true,
+      "Solid": true,
+      "Replaceable": false,
+      "Attachable": false
+    },
+    "Aspect": "Todo",
+    "AspectArgs": {
+      "Comment": "Needs placement metadata"
+    }
+  }  
 }
