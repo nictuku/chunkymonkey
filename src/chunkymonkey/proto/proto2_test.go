@@ -225,8 +225,8 @@ func Test_PacketMultiBlockChange(t *testing.T) {
 		&PacketMultiBlockChange{
 			ChunkLoc: ChunkXz{1, 2},
 			Changes: MultiBlockChanges{
-				Coords: []int16{5, 7, 9},
-				TypeIds: []byte{1, 2, 3},
+				Coords:    []int16{5, 7, 9},
+				TypeIds:   []byte{1, 2, 3},
 				BlockData: []byte{4, 5, 6},
 			},
 		},

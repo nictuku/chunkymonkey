@@ -275,6 +275,21 @@ type PacketMultiBlockChange struct {
 	Changes  MultiBlockChanges
 }
 
+type PacketBlockChange struct {
+	Position  BlockXyz
+	TypeId    byte
+	BlockData byte
+}
+
+type PacketBlockAction struct {
+	// TODO Hopefully other packets referencing block locations (BlockXyz) will
+	// become consistent and use the same type as this for Y.
+	X              int32
+	Y              int16
+	Z              int32
+	Value1, Value2 byte
+}
+
 // IMinecraftMarshaler is the interface by which packet fields (or even whole
 // packets) can customize their serialization. It will only work for
 // struct-based types currently, as a hacky method of optimizing which packet
