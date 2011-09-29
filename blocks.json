@@ -7,7 +7,7 @@
       "Solid": false,
       "Replaceable": true,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Void",
@@ -21,7 +21,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -44,7 +44,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 3,
+      "BlastResistance": 3,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -67,7 +67,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -90,7 +90,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -113,7 +113,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -136,7 +136,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Sapling",
@@ -159,7 +159,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 18000000,
+      "BlastResistance": 18000000,
       "Luminance" : 0
     },
     "Aspect": "Void",
@@ -173,7 +173,7 @@
       "Solid": false,
       "Replaceable": true,
       "Attachable": false,
-      "Blast_Resistance": 500,
+      "BlastResistance": 500,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -187,7 +187,7 @@
       "Solid": false,
       "Replaceable": true,
       "Attachable": false,
-      "Blast_Resistance": 500,
+      "BlastResistance": 500,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -201,7 +201,7 @@
       "Solid": false,
       "Replaceable": true,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -215,7 +215,7 @@
       "Solid": false,
       "Replaceable": true,
       "Attachable": false,
-      "Blast_Resistance": 500,
+      "BlastResistance": 500,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -229,7 +229,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -252,7 +252,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 3,
+      "BlastResistance": 3,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -280,7 +280,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -303,7 +303,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -326,7 +326,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -349,7 +349,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 10,
+      "BlastResistance": 10,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -373,7 +373,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 10,
+      "BlastResistance": 10,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -397,7 +397,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 3,
+      "BlastResistance": 3,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -421,7 +421,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 1.5,
+      "BlastResistance": 1.5,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -438,7 +438,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -474,7 +474,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -497,7 +497,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 17.5,
+      "BlastResistance": 17.5,
       "Luminance" : 0
     },
     "Aspect": "Dispenser",
@@ -520,7 +520,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 4,
+      "BlastResistance": 4,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -543,7 +543,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 4,
+      "BlastResistance": 4,
       "Luminance" : 0
     },
     "Aspect": "Music",
@@ -566,7 +566,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 1,
+      "BlastResistance": 1,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -580,7 +580,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 3.5,
+      "BlastResistance": 3.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -594,7 +594,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 3.5,
+      "BlastResistance": 3.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -608,7 +608,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -622,7 +622,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 20,
+      "BlastResistance": 20,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -646,7 +646,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -668,7 +668,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -684,7 +684,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -698,7 +698,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -712,7 +712,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 4,
+      "BlastResistance": 4,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -730,13 +730,13 @@
   },
   "36": {
     "BlockAttrs": {
-      "Name": "Block Moved by Piston",
+      "Name": "block moved by piston",
       "Opacity": 1,
       "Destructable": false,
       "Solid": true,
       "Replaceable": true,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -793,7 +793,9 @@
       "Destructable": true,
       "Solid": false,
       "Replaceable": false,
-      "Attachable": false
+      "Attachable": false,
+      "BlastResistance": 0,
+      "Luminance" : 1
     },
     "Aspect": "Standard",
     "AspectArgs": {
@@ -836,7 +838,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-	  "Blast_Resistance": 30,
+	  "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -859,7 +861,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -882,7 +884,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -905,7 +907,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -915,13 +917,13 @@
   },
   "45": {
     "BlockAttrs": {
-      "Name": "Brick Block",
+      "Name": "brick block",
       "Opacity": 15,
       "Destructable": true,
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -944,7 +946,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -958,7 +960,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 7.5,
+      "BlastResistance": 7.5,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -975,7 +977,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -998,7 +1000,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 6000,
+      "BlastResistance": 6000,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1021,7 +1023,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 14
     },
     "Aspect": "Standard",
@@ -1057,7 +1059,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 25,
+      "BlastResistance": 25,
       "Luminance" : 0
     },
     "Aspect": "MobSpawner",
@@ -1074,7 +1076,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1090,7 +1092,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 12.5,
+      "BlastResistance": 12.5,
       "Luminance" : 0
     },
     "Aspect": "Chest",
@@ -1113,7 +1115,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1127,7 +1129,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1150,7 +1152,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1173,7 +1175,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 12.5,
+      "BlastResistance": 12.5,
       "Luminance" : 0
     },
     "Aspect": "Workbench",
@@ -1222,7 +1224,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 17.5,
+      "BlastResistance": 17.5,
       "Luminance" : 0
     },
     "Aspect": "Furnace",
@@ -1247,7 +1249,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 17.5,
+      "BlastResistance": 17.5,
       "Luminance" : 13
     },
     "Aspect": "Furnace",
@@ -1272,7 +1274,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 5,
+      "BlastResistance": 5,
       "Luminance" : 0
     },
     "Aspect": "Sign",
@@ -1295,7 +1297,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1309,7 +1311,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 2,
+      "BlastResistance": 2,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1325,7 +1327,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 3.5,
+      "BlastResistance": 3.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1339,7 +1341,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1355,7 +1357,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Sign",
@@ -1378,7 +1380,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1392,7 +1394,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1406,7 +1408,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 25,
+      "BlastResistance": 25,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1420,7 +1422,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1434,7 +1436,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 9,
+      "BlastResistance": 9,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1462,7 +1464,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 9,
+      "BlastResistance": 9,
       "Luminance" : 9
     },
     "Aspect": "Standard",
@@ -1490,7 +1492,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1504,7 +1506,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 7
     },
     "Aspect": "Todo",
@@ -1518,7 +1520,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1532,7 +1534,7 @@
       "Solid": false,
       "Replaceable": true,
       "Attachable": false,
-      "Blast_Resistance": 0.5,
+      "BlastResistance": 0.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1546,7 +1548,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1560,7 +1562,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 1,
+      "BlastResistance": 1,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1583,7 +1585,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 2,
+      "BlastResistance": 2,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1599,7 +1601,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 3,
+      "BlastResistance": 3,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1622,7 +1624,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1638,7 +1640,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "RecordPlayer",
@@ -1661,7 +1663,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1684,7 +1686,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 5,
+      "BlastResistance": 5,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1707,7 +1709,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 2,
+      "BlastResistance": 2,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1730,7 +1732,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1753,7 +1755,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 1.5,
+      "BlastResistance": 1.5,
       "Luminance" : 15
     },
     "Aspect": "Standard",
@@ -1786,7 +1788,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 11
     },
     "Aspect": "Todo",
@@ -1800,7 +1802,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 5,
+      "BlastResistance": 5,
       "Luminance" : 15
     },
     "Aspect": "Standard",
@@ -1823,7 +1825,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1839,7 +1841,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1853,7 +1855,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 9
     },
     "Aspect": "Todo",
@@ -1867,7 +1869,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 15
     },
     "Aspect": "Todo",
@@ -1881,7 +1883,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1897,7 +1899,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -1913,7 +1915,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": true,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1937,7 +1939,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1965,7 +1967,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -1993,7 +1995,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 25,
+      "BlastResistance": 25,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -2016,7 +2018,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -2039,7 +2041,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -2072,7 +2074,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -2086,7 +2088,7 @@
       "Solid": false,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -2100,7 +2102,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 1,
+      "BlastResistance": 1,
       "Luminance" : 0
     },
     "Aspect": "Standard",
@@ -2123,7 +2125,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 15,
+      "BlastResistance": 15,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -2139,7 +2141,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -2155,7 +2157,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 30,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -2171,7 +2173,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 2.5,
+      "BlastResistance": 2.5,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -2187,7 +2189,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -2203,7 +2205,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 20.17,
+      "BlastResistance": 20.17,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -2219,7 +2221,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
@@ -2235,12 +2237,23 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 30,
       "Luminance" : 0
     },
     "Aspect": "Todo",
     "AspectArgs": {
-      "Comment": "Needs placement metadata"
+      "Comment": "Needs placement metadata",
+      "ToolType" : 1,
+      "ToolRequired" : true,
+      "ToolDamage" : 2,
+      "DroppedItems": [
+        {
+          "DroppedItem": 112,
+          "Probability": 100,
+          "Count": 1
+        }
+      ],
+      "BreakOn": 2
     }
   },
   "115": {
@@ -2251,7 +2264,7 @@
       "Solid": true,
       "Replaceable": false,
       "Attachable": false,
-      "Blast_Resistance": 0,
+      "BlastResistance": 0,
       "Luminance" : 0
     },
     "Aspect": "Todo",
