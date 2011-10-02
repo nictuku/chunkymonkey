@@ -113,15 +113,15 @@ type PacketPlayerPositionLook struct {
 }
 
 type PacketPlayerBlockHit struct {
-	Status   DigStatus
-	Position BlockXyz
-	Face     Face
+	Status DigStatus
+	Block  BlockXyz
+	Face   Face
 }
 
 type PacketPlayerBlockInteract struct {
-	Position BlockXyz
-	Face     Face
-	Tool     ItemSlot
+	Block BlockXyz
+	Face  Face
+	Tool  ItemSlot
 }
 
 type PacketPlayerHoldingChange struct {
@@ -131,7 +131,7 @@ type PacketPlayerHoldingChange struct {
 type PacketPlayerUseBed struct {
 	EntityId EntityId
 	Flag     byte
-	Position BlockXyz
+	Block    BlockXyz
 }
 
 type PacketEntityAnimation struct {
@@ -296,6 +296,108 @@ type PacketExplosion struct {
 	Blocks BlocksDxyz
 }
 
+type PacketSoundEffect struct {
+	Effect SoundEffect
+	Block  BlockXyz
+	Data   int32
+}
+
+type PacketState struct {
+	Reason   byte
+	GameType GameType
+}
+
+type PacketThunderbolt struct {
+	EntityId EntityId
+	Flag     bool
+	Position AbsIntXyz
+}
+
+type PacketWindowOpen struct {
+	WindowId  WindowId
+	Inventory InvTypeId
+	Title     string
+	NumSlots  byte
+}
+
+type PacketWindowClose struct {
+	WindowId WindowId
+}
+
+type PacketWindowClick struct {
+	WindowId     WindowId
+	Slot         SlotId
+	RightClick   bool
+	TxId         TxId
+	Shift        bool
+	ExpectedSlot ItemSlot
+}
+
+type PacketWindowSetSlot struct {
+	WindowId WindowId
+	Slot     SlotId
+	NewSlot  ItemSlot
+}
+
+type PacketWindowItems struct {
+	WindowId WindowId
+	Slots    ItemSlotSlice
+}
+
+type PacketWindowProgress struct {
+	WindowId WindowId
+	PrgBarId PrgBarId
+	Value    PrgBarValue
+}
+
+type PacketWindowTransaction struct {
+	WindowId WindowId
+	TxId     TxId
+	Accepted bool
+}
+
+type PacketQuickbarSlotUpdate struct {
+	Slot       SlotId
+	ItemTypeId ItemTypeId
+	// Note that unlike other packets, the Count and Data are always present.
+	Count ItemCount
+	Data  ItemData
+}
+
+type PacketSignUpdate struct {
+	X     int32
+	Y     int16
+	Z     int32
+	Text1 string
+	Text2 string
+	Text3 string
+	Text4 string
+}
+
+type PacketItemMapData struct {
+	ItemTypeId ItemTypeId
+	MapId      ItemData
+	MapData    MapData
+}
+
+type PacketIncrementStatistic struct {
+	StatisticId StatisticId
+	Amount      byte
+}
+
+type PacketPlayerListItem struct {
+	Username string
+	Online   bool
+	Ping     int16
+}
+
+type PacketServerListPing struct {
+}
+
+type PacketDisconnect struct {
+	Reason string
+}
+
 // IMinecraftMarshaler is the interface by which packet fields (or even whole
 // packets) can customize their serialization. It will only work for
 // struct-based types currently, as a hacky method of optimizing which packet
@@ -361,6 +463,43 @@ func (is *ItemSlot) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (er
 			return
 		}
 	}
+	return
+}
+
+// ItemSlotSlice implements IMarshaler.
+type ItemSlotSlice []ItemSlot
+
+func (slots *ItemSlotSlice) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
+	var numSlots int16
+	if err = binary.Read(reader, binary.BigEndian, &numSlots); err != nil {
+		return
+	} else if numSlots < 0 {
+		return ErrorLengthNegative
+	}
+
+	*slots = make(ItemSlotSlice, numSlots)
+
+	for i := range *slots {
+		if err = (*slots)[i].MinecraftUnmarshal(reader, ps); err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func (slots *ItemSlotSlice) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
+	numSlots := int16(len(*slots))
+	if err = binary.Write(writer, binary.BigEndian, numSlots); err != nil {
+		return
+	}
+
+	for i := range *slots {
+		if err = (*slots)[i].MinecraftMarshal(writer, ps); err != nil {
+			return
+		}
+	}
+
 	return
 }
 
@@ -525,7 +664,7 @@ func (b *BlocksDxyz) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) 
 		return ErrorLengthNegative
 	}
 
-	b.Dxyz = make([]byte, 3 * numBlocks)
+	b.Dxyz = make([]byte, 3*numBlocks)
 
 	_, err = io.ReadFull(reader, b.Dxyz)
 
@@ -533,13 +672,37 @@ func (b *BlocksDxyz) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) 
 }
 
 func (b *BlocksDxyz) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
-	numBlocks := int32(len(b.Dxyz)/3)
+	numBlocks := int32(len(b.Dxyz) / 3)
 	if err = binary.Write(writer, binary.BigEndian, numBlocks); err != nil {
 		return
 	}
 
 	_, err = writer.Write(b.Dxyz)
 
+	return
+}
+
+// MapData implements IMarshaler.
+type MapData []byte
+
+func (md *MapData) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
+	var length byte
+	if err = binary.Read(reader, binary.BigEndian, &length); err != nil {
+		return
+	}
+
+	*md = make(MapData, length)
+	_, err = io.ReadFull(reader, []byte(*md))
+	return
+}
+
+func (md *MapData) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
+	length := byte(len(*md))
+	if err = binary.Write(writer, binary.BigEndian, length); err != nil {
+		return
+	}
+
+	_, err = writer.Write([]byte(*md))
 	return
 }
 
@@ -589,6 +752,15 @@ func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value) (err
 			if err = ps.readData(reader, field); err != nil {
 				return
 			}
+		}
+
+	case reflect.Slice:
+		valuePtr := value.Addr()
+		if valueMarshaller, ok := valuePtr.Interface().(IMarshaler); ok {
+			// Get the value to read itself.
+			return valueMarshaller.MinecraftUnmarshal(reader, ps)
+		} else {
+			return ErrorInternal
 		}
 
 	case reflect.Bool:
@@ -705,6 +877,15 @@ func (ps *PacketSerializer) writeData(writer io.Writer, value reflect.Value) (er
 			if err = ps.writeData(writer, field); err != nil {
 				return
 			}
+		}
+
+	case reflect.Slice:
+		valuePtr := value.Addr()
+		if valueMarshaller, ok := valuePtr.Interface().(IMarshaler); ok {
+			// Get the value to write itself.
+			return valueMarshaller.MinecraftMarshal(writer, ps)
+		} else {
+			return ErrorInternal
 		}
 
 	case reflect.Bool:

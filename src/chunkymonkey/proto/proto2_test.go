@@ -128,8 +128,8 @@ func Test_PacketPlayerBlockInteract(t *testing.T) {
 		t,
 		&PacketPlayerBlockInteract{},
 		&PacketPlayerBlockInteract{
-			Position: BlockXyz{1, 2, 3},
-			Face:     2,
+			Block: BlockXyz{1, 2, 3},
+			Face:  2,
 			Tool: ItemSlot{
 				ItemTypeId: 1,
 				Count:      2,
@@ -151,8 +151,8 @@ func Test_PacketPlayerBlockInteract(t *testing.T) {
 		t,
 		&PacketPlayerBlockInteract{},
 		&PacketPlayerBlockInteract{
-			Position: BlockXyz{1, 2, 3},
-			Face:     2,
+			Block: BlockXyz{1, 2, 3},
+			Face:  2,
 			Tool: ItemSlot{
 				ItemTypeId: -1,
 			},
@@ -252,9 +252,47 @@ func Test_PacketExplosion(t *testing.T) {
 		},
 		te.LiteralString(
 			Float64One+Float64Two+Float64Three+
-			Float32Two+
-			"\x00\x00\x00\x02"+
-			"\x01\x02\x03\x04\x05\x06"),
+				Float32Two+
+				"\x00\x00\x00\x02"+
+				"\x01\x02\x03\x04\x05\x06"),
+	)
+}
+
+func Test_PacketWindowItems(t *testing.T) {
+	testPacketSerial(
+		t,
+		&PacketWindowItems{},
+		&PacketWindowItems{
+			WindowId: 5,
+			Slots: ItemSlotSlice{
+				ItemSlot{ItemTypeId: -1},
+				ItemSlot{ItemTypeId: 3, Count: 7, Data: 1},
+			},
+		},
+		te.LiteralString(
+			"\x05"+
+				"\x00\x02"+
+				"\xff\xff"+
+				"\x00\x03\x07\x00\x01"),
+	)
+}
+
+func Test_PacketMapData(t *testing.T) {
+	testPacketSerial(
+		t,
+		&PacketItemMapData{},
+		&PacketItemMapData{
+			ItemTypeId: 10,
+			MapId: 3,
+			MapData: MapData{
+				1, 10,
+			},
+		},
+		te.LiteralString(
+			"\x00\x0a"+
+			"\x00\x03"+
+			"\x02"+
+			"\x01\x0a"),
 	)
 }
 
