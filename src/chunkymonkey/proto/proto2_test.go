@@ -277,22 +277,22 @@ func Test_PacketWindowItems(t *testing.T) {
 	)
 }
 
-func Test_PacketMapData(t *testing.T) {
+func Test_PacketItemData(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketItemMapData{},
-		&PacketItemMapData{
+		&PacketItemData{},
+		&PacketItemData{
 			ItemTypeId: 10,
-			MapId: 3,
+			MapId:      3,
 			MapData: MapData{
 				1, 10,
 			},
 		},
 		te.LiteralString(
 			"\x00\x0a"+
-			"\x00\x03"+
-			"\x02"+
-			"\x01\x0a"),
+				"\x00\x03"+
+				"\x02"+
+				"\x01\x0a"),
 	)
 }
 
