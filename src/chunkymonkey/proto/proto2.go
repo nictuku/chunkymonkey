@@ -290,6 +290,12 @@ type PacketBlockAction struct {
 	Value1, Value2 byte
 }
 
+type PacketExplosion struct {
+	Center AbsXyz
+	Radius float32
+	Blocks BlocksDxyz
+}
+
 // IMinecraftMarshaler is the interface by which packet fields (or even whole
 // packets) can customize their serialization. It will only work for
 // struct-based types currently, as a hacky method of optimizing which packet
@@ -502,6 +508,38 @@ func (mbc *MultiBlockChanges) MinecraftMarshal(writer io.Writer, ps *PacketSeria
 	}
 
 	_, err = writer.Write(mbc.BlockData)
+	return
+}
+
+type BlocksDxyz struct {
+	// Dxyz contains 3 * number of block locations. Dxyz[0:3] contains the first,
+	// Dxyz[3:6] the second, etc.
+	Dxyz []byte
+}
+
+func (b *BlocksDxyz) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
+	var numBlocks int32
+	if err = binary.Read(reader, binary.BigEndian, &numBlocks); err != nil {
+		return
+	} else if numBlocks < 0 {
+		return ErrorLengthNegative
+	}
+
+	b.Dxyz = make([]byte, 3 * numBlocks)
+
+	_, err = io.ReadFull(reader, b.Dxyz)
+
+	return
+}
+
+func (b *BlocksDxyz) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
+	numBlocks := int32(len(b.Dxyz)/3)
+	if err = binary.Write(writer, binary.BigEndian, numBlocks); err != nil {
+		return
+	}
+
+	_, err = writer.Write(b.Dxyz)
+
 	return
 }
 

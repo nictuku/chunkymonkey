@@ -239,6 +239,25 @@ func Test_PacketMultiBlockChange(t *testing.T) {
 	)
 }
 
+func Test_PacketExplosion(t *testing.T) {
+	testPacketSerial(
+		t,
+		&PacketExplosion{},
+		&PacketExplosion{
+			Center: AbsXyz{1, 2, 3},
+			Radius: 2,
+			Blocks: BlocksDxyz{
+				Dxyz: []byte{1, 2, 3, 4, 5, 6},
+			},
+		},
+		te.LiteralString(
+			Float64One+Float64Two+Float64Three+
+			Float32Two+
+			"\x00\x00\x00\x02"+
+			"\x01\x02\x03\x04\x05\x06"),
+	)
+}
+
 func Benchmark_writeString16(b *testing.B) {
 	output := bytes.NewBuffer(make([]byte, 0, 1024))
 
