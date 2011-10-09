@@ -12,6 +12,8 @@ import (
 // Possible error values for reading and writing packets.
 var (
 	ErrorPacketNotPtr      = os.NewError("packet not passed as a pointer")
+	ErrorUnknownPacketType = os.NewError("unknown packet type")
+	ErrorUnexpectedPacket  = os.NewError("unexpected packet id")
 	ErrorPacketNil         = os.NewError("packet was passed by a nil pointer")
 	ErrorLengthNegative    = os.NewError("length was negative")
 	ErrorStrTooLong        = os.NewError("string was too long")
@@ -51,18 +53,33 @@ type PacketSerializer struct {
 	scratch [8]byte
 }
 
-func (ps *PacketSerializer) ReadPacket(reader io.Reader, packet interface{}) (err os.Error) {
-	// TODO Check packet is CanSettable? (if settable at the top, does that
-	// follow for all its descendants?)
-	value := reflect.ValueOf(packet)
-	kind := value.Kind()
-	if kind != reflect.Ptr {
-		return ErrorPacketNotPtr
-	} else if value.IsNil() {
-		return ErrorPacketNil
+func (ps *PacketSerializer) ReadPacket(reader io.Reader, fromClient bool) (packet interface{}, err os.Error) {
+	// Read packet ID.
+	if _, err = io.ReadFull(reader, ps.scratch[0:1]); err != nil {
+		return
 	}
 
-	return ps.readData(reader, reflect.Indirect(value))
+	pktInfo := &pktIdInfo[ps.scratch[0]]
+	if !pktInfo.validPacket {
+		return nil, ErrorUnknownPacketType
+	}
+
+	var expected bool
+	if fromClient {
+		expected = pktInfo.clientToServer
+	} else {
+		expected = pktInfo.serverToClient
+	}
+	if !expected {
+		return nil, ErrorUnexpectedPacket
+	}
+
+	value := reflect.New(pktInfo.pktType)
+	if err = ps.readData(reader, reflect.Indirect(value)); err != nil {
+		return
+	}
+
+	return value.Interface(), nil
 }
 
 func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value) (err os.Error) {
@@ -181,10 +198,16 @@ func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value) (err
 }
 
 func (ps *PacketSerializer) WritePacket(writer io.Writer, packet interface{}) (err os.Error) {
-	value := reflect.ValueOf(packet)
-	kind := value.Kind()
-	if kind == reflect.Ptr {
-		value = reflect.Indirect(value)
+	value := reflect.Indirect(reflect.ValueOf(packet))
+	pktType := value.Type()
+
+	// Write packet ID.
+	var ok bool
+	if ps.scratch[0], ok = pktTypeId[pktType]; !ok {
+		return ErrorUnknownPacketType
+	}
+	if _, err = writer.Write(ps.scratch[0:1]); err != nil {
+		return
 	}
 
 	return ps.writeData(writer, value)

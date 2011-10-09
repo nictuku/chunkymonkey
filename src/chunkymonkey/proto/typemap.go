@@ -4,8 +4,6 @@ package proto
 // packet IDs and their type.
 
 import (
-	"io"
-	"os"
 	"reflect"
 )
 
@@ -17,9 +15,6 @@ var (
 	// Maps from an interface type ptr to the ID for that packet. This is used
 	// when sending packets.
 	pktTypeId map[reflect.Type]byte = make(map[reflect.Type]byte, 256)
-
-	ErrorUnknownPacketType = os.NewError("unknown packet type")
-	ErrorUnexpectedPacket  = os.NewError("unexpected packet id")
 )
 
 type pktInfo struct {
@@ -27,54 +22,6 @@ type pktInfo struct {
 	clientToServer bool
 	serverToClient bool
 	pktType        reflect.Type
-}
-
-// TODO Consider moving all the reading/writing into serialize.go and just make
-// this functions to work with packet IDs and types.
-
-func WritePacket(writer io.Writer, ps *PacketSerializer, pkt interface{}) (err os.Error) {
-	var idArray [1]byte
-	var ok bool
-
-	pktType := reflect.TypeOf(pkt)
-
-	idArray[0], ok = pktTypeId[pktType]
-	if !ok {
-		return ErrorUnknownPacketType
-	}
-
-	if _, err = writer.Write(idArray[0:1]); err != nil {
-		return
-	}
-
-	return ps.WritePacket(writer, pkt)
-}
-
-func ReadPacket(reader io.Reader, ps *PacketSerializer, isServer bool) (pkt interface{}, err os.Error) {
-	var idArray [1]byte
-
-	if _, err = io.ReadFull(reader, idArray[0:1]); err != nil {
-		return
-	}
-
-	id := idArray[0]
-	pktInfo := pktIdInfo[id]
-	if !pktInfo.validPacket {
-		return nil, ErrorUnknownPacketType
-	}
-
-	if isServer && !pktInfo.clientToServer {
-		return nil, ErrorUnexpectedPacket
-	} else if !pktInfo.serverToClient {
-		return nil, ErrorUnexpectedPacket
-	}
-
-	pkt = reflect.New(pktInfo.pktType).Interface()
-	if err = ps.ReadPacket(reader, pkt); err != nil {
-		return nil, err
-	}
-
-	return
 }
 
 // Packet defintions.
@@ -141,7 +88,7 @@ var pktDefns = []struct {
 	{0x68, false, true, &PacketWindowItems{}},
 	{0x69, false, true, &PacketWindowProgressBar{}},
 	{0x6a, true, true, &PacketWindowTransaction{}},
-	{0x6b, false, true, &PacketQuickbarSlotUpdate{}},
+	{0x6b, true, true, &PacketQuickbarSlotUpdate{}},
 	{0x82, true, true, &PacketSignUpdate{}},
 	{0x83, false, true, &PacketItemData{}},
 	{0xc8, false, true, &PacketIncrementStatistic{}},
@@ -153,7 +100,7 @@ var pktDefns = []struct {
 func init() {
 	for i := range pktDefns {
 		defn := &pktDefns[i]
-		pktType := reflect.TypeOf(defn.pkt)
+		pktType := reflect.Indirect(reflect.ValueOf(defn.pkt)).Type()
 
 		// Map from ID to info.
 		pktIdInfo[defn.id] = pktInfo{

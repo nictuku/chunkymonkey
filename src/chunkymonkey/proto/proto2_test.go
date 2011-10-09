@@ -19,13 +19,13 @@ const (
 	Float64Four  = "\x40\x10\x00\x00\x00\x00\x00\x00"
 )
 
-func testPacketSerial(t *testing.T, inputPkt, outputPkt interface{}, expectedSerialization te.IBytesMatcher) {
+func testPacketSerial(t *testing.T, fromClient bool, outputPkt interface{}, expectedSerialization te.IBytesMatcher) {
 	ps := new(PacketSerializer)
 
 	// Test reading.
 	input := new(bytes.Buffer)
 	expectedSerialization.Write(input)
-	if err := ps.ReadPacket(input, inputPkt); err != nil {
+	if inputPkt, err := ps.ReadPacket(input, fromClient); err != nil {
 		t.Errorf("Unexpected error reading packet: %v", err)
 	} else {
 		if !reflect.DeepEqual(outputPkt, inputPkt) {
@@ -47,7 +47,7 @@ func testPacketSerial(t *testing.T, inputPkt, outputPkt interface{}, expectedSer
 func Test_PacketLogin(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketLogin{},
+		true,
 		&PacketLogin{
 			VersionOrEntityId: 5,
 			Username:          "username",
@@ -58,7 +58,7 @@ func Test_PacketLogin(t *testing.T) {
 			WorldHeight:       128,
 			MaxPlayers:        12,
 		},
-		te.LiteralString(""+
+		te.LiteralString("\x01"+
 			"\x00\x00\x00\x05"+ // Version/EntityID
 			"\x00\x08\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e"+ // Username
 			"\x00\x00\x00\x00\x00\x00\x00\x7b"+ // MapSeed
@@ -73,13 +73,13 @@ func Test_PacketLogin(t *testing.T) {
 func Test_PacketUseEntity(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketUseEntity{},
+		true,
 		&PacketUseEntity{
 			User:      2,
 			Target:    5,
 			LeftClick: true,
 		},
-		te.LiteralString(""+
+		te.LiteralString("\x07"+
 			"\x00\x00\x00\x02"+
 			"\x00\x00\x00\x05"+
 			"\x01"),
@@ -89,12 +89,12 @@ func Test_PacketUseEntity(t *testing.T) {
 func Test_PacketPlayerPosition(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketPlayerPosition{},
+		true,
 		&PacketPlayerPosition{
 			X: 1, Y: 2, Stance: 3, Z: 4,
 			OnGround: true,
 		},
-		te.LiteralString(""+
+		te.LiteralString("\x0b"+
 			Float64One+
 			Float64Two+
 			Float64Three+
@@ -106,13 +106,13 @@ func Test_PacketPlayerPosition(t *testing.T) {
 func Test_PacketPlayerPositionLook(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketPlayerPositionLook{},
+		true,
 		&PacketPlayerPositionLook{
 			X: 1, Y1: 2, Y2: 3, Z: 4,
 			Look:     LookDegrees{Yaw: 1, Pitch: 2},
 			OnGround: true,
 		},
-		te.LiteralString(""+
+		te.LiteralString("\x0d"+
 			Float64One+
 			Float64Two+
 			Float64Three+
@@ -126,7 +126,7 @@ func Test_PacketPlayerPositionLook(t *testing.T) {
 func Test_PacketPlayerBlockInteract(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketPlayerBlockInteract{},
+		true,
 		&PacketPlayerBlockInteract{
 			Block: BlockXyz{1, 2, 3},
 			Face:  2,
@@ -136,7 +136,7 @@ func Test_PacketPlayerBlockInteract(t *testing.T) {
 				Data:       3,
 			},
 		},
-		te.LiteralString(""+
+		te.LiteralString("\x0f"+
 			"\x00\x00\x00\x01"+
 			"\x02"+
 			"\x00\x00\x00\x03"+
@@ -149,7 +149,7 @@ func Test_PacketPlayerBlockInteract(t *testing.T) {
 	// Test with last two fields missing (no tool used).
 	testPacketSerial(
 		t,
-		&PacketPlayerBlockInteract{},
+		true,
 		&PacketPlayerBlockInteract{
 			Block: BlockXyz{1, 2, 3},
 			Face:  2,
@@ -157,7 +157,7 @@ func Test_PacketPlayerBlockInteract(t *testing.T) {
 				ItemTypeId: -1,
 			},
 		},
-		te.LiteralString(""+
+		te.LiteralString("\x0f"+
 			"\x00\x00\x00\x01"+
 			"\x02"+
 			"\x00\x00\x00\x03"+
@@ -169,7 +169,7 @@ func Test_PacketPlayerBlockInteract(t *testing.T) {
 func Test_PacketEntityMetadata(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketEntityMetadata{},
+		false,
 		&PacketEntityMetadata{
 			EntityId: 5,
 			Metadata: EntityMetadataTable{
@@ -178,7 +178,7 @@ func Test_PacketEntityMetadata(t *testing.T) {
 				},
 			},
 		},
-		te.LiteralString(""+
+		te.LiteralString("\x28"+
 			"\x00\x00\x00\x05"+
 			"\x00\x05"+
 			"\x7f"),
@@ -188,7 +188,7 @@ func Test_PacketEntityMetadata(t *testing.T) {
 func Test_PacketMapChunk(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketMapChunk{},
+		false,
 		&PacketMapChunk{
 			Corner: BlockXyz{16, 0, 32},
 			Data: ChunkData{
@@ -202,7 +202,7 @@ func Test_PacketMapChunk(t *testing.T) {
 			},
 		},
 		te.InOrder(
-			te.LiteralString(""+ // {16, 0, 32}
+			te.LiteralString("\x33"+
 				"\x00\x00\x00\x10"+
 				"\x00"+
 				"\x00\x00\x00\x20"),
@@ -221,7 +221,7 @@ func Test_PacketMapChunk(t *testing.T) {
 func Test_PacketMultiBlockChange(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketMultiBlockChange{},
+		false,
 		&PacketMultiBlockChange{
 			ChunkLoc: ChunkXz{1, 2},
 			Changes: MultiBlockChanges{
@@ -230,7 +230,7 @@ func Test_PacketMultiBlockChange(t *testing.T) {
 				BlockData: []byte{4, 5, 6},
 			},
 		},
-		te.LiteralString(""+
+		te.LiteralString("\x34"+
 			"\x00\x00\x00\x01\x00\x00\x00\x02"+
 			"\x00\x03"+
 			"\x00\x05\x00\x07\x00\x09"+
@@ -242,7 +242,7 @@ func Test_PacketMultiBlockChange(t *testing.T) {
 func Test_PacketExplosion(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketExplosion{},
+		false,
 		&PacketExplosion{
 			Center: AbsXyz{1, 2, 3},
 			Radius: 2,
@@ -250,18 +250,18 @@ func Test_PacketExplosion(t *testing.T) {
 				Dxyz: []byte{1, 2, 3, 4, 5, 6},
 			},
 		},
-		te.LiteralString(
+		te.LiteralString("\x3c"+
 			Float64One+Float64Two+Float64Three+
-				Float32Two+
-				"\x00\x00\x00\x02"+
-				"\x01\x02\x03\x04\x05\x06"),
+			Float32Two+
+			"\x00\x00\x00\x02"+
+			"\x01\x02\x03\x04\x05\x06"),
 	)
 }
 
 func Test_PacketWindowItems(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketWindowItems{},
+		false,
 		&PacketWindowItems{
 			WindowId: 5,
 			Slots: ItemSlotSlice{
@@ -269,18 +269,18 @@ func Test_PacketWindowItems(t *testing.T) {
 				ItemSlot{ItemTypeId: 3, Count: 7, Data: 1},
 			},
 		},
-		te.LiteralString(
+		te.LiteralString("\x68"+
 			"\x05"+
-				"\x00\x02"+
-				"\xff\xff"+
-				"\x00\x03\x07\x00\x01"),
+			"\x00\x02"+
+			"\xff\xff"+
+			"\x00\x03\x07\x00\x01"),
 	)
 }
 
 func Test_PacketItemData(t *testing.T) {
 	testPacketSerial(
 		t,
-		&PacketItemData{},
+		false,
 		&PacketItemData{
 			ItemTypeId: 10,
 			MapId:      3,
@@ -288,11 +288,11 @@ func Test_PacketItemData(t *testing.T) {
 				1, 10,
 			},
 		},
-		te.LiteralString(
+		te.LiteralString("\x83"+
 			"\x00\x0a"+
-				"\x00\x03"+
-				"\x02"+
-				"\x01\x0a"),
+			"\x00\x03"+
+			"\x02"+
+			"\x01\x0a"),
 	)
 }
 
