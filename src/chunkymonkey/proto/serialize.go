@@ -111,74 +111,85 @@ func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value) (err
 		}
 
 	case reflect.Bool:
-		if _, err = io.ReadFull(reader, ps.scratch[0:1]); err != nil {
-			return
+		if v, err := ps.readBool(reader); err != nil {
+			return err
+		} else {
+			value.SetBool(v)
 		}
-		value.SetBool(ps.scratch[0] != 0)
 
 		// Integer types:
 
 	case reflect.Int8:
-		if _, err = io.ReadFull(reader, ps.scratch[0:1]); err != nil {
-			return
+		if v, err := ps.readUint8(reader); err != nil {
+			return err
+		} else {
+			value.SetInt(int64(int8(v)))
 		}
-		value.SetInt(int64(ps.scratch[0]))
 	case reflect.Int16:
-		if _, err = io.ReadFull(reader, ps.scratch[0:2]); err != nil {
-			return
+		if v, err := ps.readUint16(reader); err != nil {
+			return err
+		} else {
+			value.SetInt(int64(int16(v)))
 		}
-		value.SetInt(int64(binary.BigEndian.Uint16(ps.scratch[0:2])))
 	case reflect.Int32:
-		if _, err = io.ReadFull(reader, ps.scratch[0:4]); err != nil {
-			return
+		if v, err := ps.readUint32(reader); err != nil {
+			return err
+		} else {
+			value.SetInt(int64(int32(v)))
 		}
-		value.SetInt(int64(binary.BigEndian.Uint32(ps.scratch[0:4])))
 	case reflect.Int64:
-		if _, err = io.ReadFull(reader, ps.scratch[0:8]); err != nil {
-			return
+		if v, err := ps.readUint64(reader); err != nil {
+			return err
+		} else {
+			value.SetInt(int64(v))
 		}
-		value.SetInt(int64(binary.BigEndian.Uint64(ps.scratch[0:8])))
 	case reflect.Uint8:
-		if _, err = io.ReadFull(reader, ps.scratch[0:1]); err != nil {
-			return
+		if v, err := ps.readUint8(reader); err != nil {
+			return err
+		} else {
+			value.SetUint(uint64(v))
 		}
-		value.SetUint(uint64(ps.scratch[0]))
 	case reflect.Uint16:
-		if _, err = io.ReadFull(reader, ps.scratch[0:2]); err != nil {
-			return
+		if v, err := ps.readUint16(reader); err != nil {
+			return err
+		} else {
+			value.SetUint(uint64(v))
 		}
-		value.SetUint(uint64(binary.BigEndian.Uint16(ps.scratch[0:2])))
 	case reflect.Uint32:
-		if _, err = io.ReadFull(reader, ps.scratch[0:4]); err != nil {
-			return
+		if v, err := ps.readUint32(reader); err != nil {
+			return err
+		} else {
+			value.SetUint(uint64(v))
 		}
-		value.SetUint(uint64(binary.BigEndian.Uint32(ps.scratch[0:4])))
 	case reflect.Uint64:
-		if _, err = io.ReadFull(reader, ps.scratch[0:8]); err != nil {
-			return
+		if v, err := ps.readUint64(reader); err != nil {
+			return err
+		} else {
+			value.SetUint(v)
 		}
-		value.SetUint(binary.BigEndian.Uint64(ps.scratch[0:8]))
 
 		// Floating point types:
 
 	case reflect.Float32:
-		if _, err = io.ReadFull(reader, ps.scratch[0:4]); err != nil {
-			return
+		if v, err := ps.readFloat32(reader); err != nil {
+			return err
+		} else {
+			value.SetFloat(float64(v))
 		}
-		value.SetFloat(float64(math.Float32frombits(binary.BigEndian.Uint32(ps.scratch[0:4]))))
-
 	case reflect.Float64:
-		if _, err = io.ReadFull(reader, ps.scratch[0:8]); err != nil {
-			return
+		if v, err := ps.readFloat64(reader); err != nil {
+			return err
+		} else {
+			value.SetFloat(v)
 		}
-		value.SetFloat(math.Float64frombits(binary.BigEndian.Uint64(ps.scratch[0:8])))
 
 	case reflect.String:
 		// TODO Maybe the tag field could/should suggest a max length.
-		if _, err = io.ReadFull(reader, ps.scratch[0:2]); err != nil {
+		lengthUint16, err := ps.readUint16(reader)
+		if err != nil {
 			return
 		}
-		length := int16(binary.BigEndian.Uint16(ps.scratch[0:2]))
+		length := int16(lengthUint16)
 		if length < 0 {
 			return ErrorLengthNegative
 		}
@@ -189,7 +200,6 @@ func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value) (err
 		value.SetString(encodeUtf8(codepoints))
 
 	default:
-		// TODO
 		typ := value.Type()
 		log.Printf("Unimplemented type in packet: %v", typ)
 		return ErrorInternal
@@ -242,67 +252,138 @@ func (ps *PacketSerializer) writeData(writer io.Writer, value reflect.Value) (er
 		}
 
 	case reflect.Bool:
-		if value.Bool() {
-			ps.scratch[0] = 1
-		} else {
-			ps.scratch[0] = 0
-		}
-		_, err = writer.Write(ps.scratch[0:1])
+		err = ps.writeBool(writer, value.Bool())
 
 		// Integer types:
 
 	case reflect.Int8:
-		ps.scratch[0] = byte(value.Int())
-		_, err = writer.Write(ps.scratch[0:1])
+		err = ps.writeUint8(writer, uint8(int8(value.Int())))
 	case reflect.Int16:
-		binary.BigEndian.PutUint16(ps.scratch[0:2], uint16(value.Int()))
-		_, err = writer.Write(ps.scratch[0:2])
+		err = ps.writeUint16(writer, uint16(int16(value.Int())))
 	case reflect.Int32:
-		binary.BigEndian.PutUint32(ps.scratch[0:4], uint32(value.Int()))
-		_, err = writer.Write(ps.scratch[0:4])
+		err = ps.writeUint32(writer, uint32(int32(value.Int())))
 	case reflect.Int64:
-		binary.BigEndian.PutUint64(ps.scratch[0:8], uint64(value.Int()))
-		_, err = writer.Write(ps.scratch[0:8])
+		err = ps.writeUint64(writer, uint64(int64(value.Int())))
 	case reflect.Uint8:
-		ps.scratch[0] = byte(value.Uint())
-		_, err = writer.Write(ps.scratch[0:1])
+		err = ps.writeUint8(writer, uint8(value.Uint()))
 	case reflect.Uint16:
-		binary.BigEndian.PutUint16(ps.scratch[0:2], uint16(value.Uint()))
-		_, err = writer.Write(ps.scratch[0:2])
+		err = ps.writeUint16(writer, uint16(value.Uint()))
 	case reflect.Uint32:
-		binary.BigEndian.PutUint32(ps.scratch[0:4], uint32(value.Uint()))
-		_, err = writer.Write(ps.scratch[0:4])
+		err = ps.writeUint32(writer, uint32(value.Uint()))
 	case reflect.Uint64:
-		binary.BigEndian.PutUint64(ps.scratch[0:8], value.Uint())
-		_, err = writer.Write(ps.scratch[0:8])
+		err = ps.writeUint64(writer, value.Uint())
 
 		// Floating point types:
 
 	case reflect.Float32:
-		binary.BigEndian.PutUint32(ps.scratch[0:4], math.Float32bits(float32(value.Float())))
-		_, err = writer.Write(ps.scratch[0:4])
+		err = ps.writeFloat32(writer, float32(value.Float()))
 	case reflect.Float64:
-		binary.BigEndian.PutUint64(ps.scratch[0:8], math.Float64bits(value.Float()))
-		_, err = writer.Write(ps.scratch[0:8])
+		err = ps.writeFloat64(writer, value.Float())
 
 	case reflect.String:
 		lengthInt := value.Len()
 		if lengthInt > math.MaxInt16 {
 			return ErrorStrTooLong
 		}
-		binary.BigEndian.PutUint16(ps.scratch[0:2], uint16(lengthInt))
-		if _, err = writer.Write(ps.scratch[0:2]); err != nil {
+		if err = ps.writeUint16(writer, uint16(lengthInt)); err != nil {
 			return
 		}
 		codepoints := decodeUtf8(value.String())
 		err = binary.Write(writer, binary.BigEndian, codepoints)
 
 	default:
-		// TODO
 		typ := value.Type()
 		log.Printf("Unimplemented type in packet: %v", typ)
 		return ErrorInternal
 	}
 
 	return
+}
+
+// read/write bool.
+func (ps *PacketSerializer) readBool(reader io.Reader) (v bool, err os.Error) {
+	vUint8, err := ps.readUint8(reader)
+	return vUint8 != 0, err
+}
+func (ps *PacketSerializer) writeBool(writer io.Writer, v bool) (err os.Error) {
+	if v {
+		return ps.writeUint8(writer, 1)
+	}
+	return ps.writeUint8(writer, 0)
+}
+
+// read/write uint8.
+func (ps *PacketSerializer) readUint8(reader io.Reader) (v uint8, err os.Error) {
+	if _, err = io.ReadFull(reader, ps.scratch[0:1]); err != nil {
+		return
+	}
+	return ps.scratch[0], nil
+}
+func (ps *PacketSerializer) writeUint8(writer io.Writer, v uint8) (err os.Error) {
+	ps.scratch[0] = v
+	_, err = writer.Write(ps.scratch[0:1])
+	return
+}
+
+// read/write uint16.
+func (ps *PacketSerializer) readUint16(reader io.Reader) (v uint16, err os.Error) {
+	if _, err = io.ReadFull(reader, ps.scratch[0:2]); err != nil {
+		return
+	}
+	return binary.BigEndian.Uint16(ps.scratch[0:2]), nil
+}
+func (ps *PacketSerializer) writeUint16(writer io.Writer, v uint16) (err os.Error) {
+	binary.BigEndian.PutUint16(ps.scratch[0:2], v)
+	_, err = writer.Write(ps.scratch[0:2])
+	return
+}
+
+// read/write uint32.
+func (ps *PacketSerializer) readUint32(reader io.Reader) (v uint32, err os.Error) {
+	if _, err = io.ReadFull(reader, ps.scratch[0:4]); err != nil {
+		return
+	}
+	return binary.BigEndian.Uint32(ps.scratch[0:4]), nil
+}
+func (ps *PacketSerializer) writeUint32(writer io.Writer, v uint32) (err os.Error) {
+	binary.BigEndian.PutUint32(ps.scratch[0:4], v)
+	_, err = writer.Write(ps.scratch[0:4])
+	return
+}
+
+// read/write uint64.
+func (ps *PacketSerializer) readUint64(reader io.Reader) (v uint64, err os.Error) {
+	if _, err = io.ReadFull(reader, ps.scratch[0:8]); err != nil {
+		return
+	}
+	return binary.BigEndian.Uint64(ps.scratch[0:8]), nil
+}
+func (ps *PacketSerializer) writeUint64(writer io.Writer, v uint64) (err os.Error) {
+	binary.BigEndian.PutUint64(ps.scratch[0:8], v)
+	_, err = writer.Write(ps.scratch[0:8])
+	return
+}
+
+// read/write float32.
+func (ps *PacketSerializer) readFloat32(reader io.Reader) (v float32, err os.Error) {
+	var vUint32 uint32
+	if vUint32, err = ps.readUint32(reader); err != nil {
+		return
+	}
+	return math.Float32frombits(vUint32), nil
+}
+func (ps *PacketSerializer) writeFloat32(writer io.Writer, v float32) (err os.Error) {
+	return ps.writeUint32(writer, math.Float32bits(v))
+}
+
+// read/write float64.
+func (ps *PacketSerializer) readFloat64(reader io.Reader) (v float64, err os.Error) {
+	var vUint64 uint64
+	if vUint64, err = ps.readUint64(reader); err != nil {
+		return
+	}
+	return math.Float64frombits(vUint64), nil
+}
+func (ps *PacketSerializer) writeFloat64(writer io.Writer, v float64) (err os.Error) {
+	return ps.writeUint64(writer, math.Float64bits(v))
 }

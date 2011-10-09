@@ -246,9 +246,7 @@ func Test_PacketExplosion(t *testing.T) {
 		&PacketExplosion{
 			Center: AbsXyz{1, 2, 3},
 			Radius: 2,
-			Blocks: BlocksDxyz{
-				Dxyz: []byte{1, 2, 3, 4, 5, 6},
-			},
+			Blocks: BlocksDxyz{1, 2, 3, 4, 5, 6},
 		},
 		te.LiteralString("\x3c"+
 			Float64One+Float64Two+Float64Three+

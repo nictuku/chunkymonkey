@@ -490,9 +490,14 @@ func (cd *ChunkData) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) 
 		return
 	}
 
-	var length int32
-	if err = binary.Read(reader, binary.BigEndian, &length); err != nil {
+	lengthUint32, err := ps.readUint32(reader)
+	if err != nil {
 		return
+	}
+
+	length := int32(lengthUint32)
+	if length < 0 {
+		return ErrorLengthNegative
 	}
 
 	zReader, err := zlib.NewReader(&io.LimitedReader{reader, int64(length)})
@@ -551,7 +556,7 @@ func (cd *ChunkData) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (e
 	}
 
 	compressedBytes := buf.Bytes()
-	if err = binary.Write(writer, binary.BigEndian, int32(len(compressedBytes))); err != nil {
+	if err = ps.writeUint32(writer, uint32(len(compressedBytes))); err != nil {
 		return
 	}
 
@@ -570,12 +575,12 @@ type MultiBlockChanges struct {
 }
 
 func (mbc *MultiBlockChanges) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
-	var numBlocks int16
-
-	if err = binary.Read(reader, binary.BigEndian, &numBlocks); err != nil {
+	numBlocksUint16, err := ps.readUint16(reader)
+	if err != nil {
 		return
 	}
 
+	numBlocks := int16(numBlocksUint16)
 	if numBlocks < 0 {
 		return ErrorLengthNegative
 	} else if numBlocks == 0 {
@@ -605,7 +610,7 @@ func (mbc *MultiBlockChanges) MinecraftMarshal(writer io.Writer, ps *PacketSeria
 		return ErrorMismatchingValues
 	}
 
-	if err = binary.Write(writer, binary.BigEndian, int16(numBlocks)); err != nil {
+	if err = ps.writeUint16(writer, uint16(numBlocks)); err != nil {
 		return
 	}
 
@@ -621,34 +626,33 @@ func (mbc *MultiBlockChanges) MinecraftMarshal(writer io.Writer, ps *PacketSeria
 	return
 }
 
-type BlocksDxyz struct {
-	// Dxyz contains 3 * number of block locations. Dxyz[0:3] contains the first,
-	// Dxyz[3:6] the second, etc.
-	Dxyz []byte
-}
+// BlocksDxyz contains 3 * number of block relative locations. [0:3] contains
+// the first, [3:6] the second, etc.
+type BlocksDxyz []byte
 
 func (b *BlocksDxyz) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
-	var numBlocks int32
-	if err = binary.Read(reader, binary.BigEndian, &numBlocks); err != nil {
+	numBlocksUint32, err := ps.readUint32(reader)
+	if err != nil {
 		return
-	} else if numBlocks < 0 {
+	}
+
+	numBlocks := int32(numBlocksUint32)
+	if numBlocks < 0 {
 		return ErrorLengthNegative
 	}
 
-	b.Dxyz = make([]byte, 3*numBlocks)
-
-	_, err = io.ReadFull(reader, b.Dxyz)
+	*b = make([]byte, 3*numBlocks)
+	_, err = io.ReadFull(reader, *b)
 
 	return
 }
 
 func (b *BlocksDxyz) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
-	numBlocks := int32(len(b.Dxyz) / 3)
-	if err = binary.Write(writer, binary.BigEndian, numBlocks); err != nil {
+	if err = ps.writeUint32(writer, uint32(len(*b))/3); err != nil {
 		return
 	}
 
-	_, err = writer.Write(b.Dxyz)
+	_, err = writer.Write(*b)
 
 	return
 }
@@ -657,8 +661,8 @@ func (b *BlocksDxyz) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (e
 type MapData []byte
 
 func (md *MapData) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
-	var length byte
-	if err = binary.Read(reader, binary.BigEndian, &length); err != nil {
+	length, err := ps.readUint8(reader)
+	if err != nil {
 		return
 	}
 
@@ -668,8 +672,7 @@ func (md *MapData) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (e
 }
 
 func (md *MapData) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
-	length := byte(len(*md))
-	if err = binary.Write(writer, binary.BigEndian, length); err != nil {
+	if err = ps.writeUint8(writer, byte(len(*md))); err != nil {
 		return
 	}
 
