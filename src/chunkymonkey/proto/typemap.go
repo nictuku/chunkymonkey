@@ -88,7 +88,7 @@ var pktDefns = []struct {
 	{0x68, false, true, &PacketWindowItems{}},
 	{0x69, false, true, &PacketWindowProgressBar{}},
 	{0x6a, true, true, &PacketWindowTransaction{}},
-	{0x6b, true, true, &PacketQuickbarSlotUpdate{}},
+	{0x6b, true, true, &PacketCreativeInventoryAction{}},
 	{0x82, true, true, &PacketSignUpdate{}},
 	{0x83, false, true, &PacketItemData{}},
 	{0xc8, false, true, &PacketIncrementStatistic{}},

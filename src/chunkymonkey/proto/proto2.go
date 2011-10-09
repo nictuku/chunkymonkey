@@ -337,11 +337,11 @@ type PacketWindowTransaction struct {
 	Accepted bool
 }
 
-type PacketQuickbarSlotUpdate struct {
+type PacketCreativeInventoryAction struct {
 	Slot       SlotId
 	ItemTypeId ItemTypeId
 	// Note that unlike other packets, the Count and Data are always present.
-	Count ItemCount
+	Count int16
 	Data  ItemData
 }
 
@@ -402,38 +402,45 @@ type ItemSlot struct {
 }
 
 func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
-	if err = binary.Read(reader, binary.BigEndian, &is.ItemTypeId); err != nil {
+	typeIdUint16, err := ps.readUint16(reader)
+	if err != nil {
 		return
 	}
+	is.ItemTypeId = ItemTypeId(typeIdUint16)
 
 	if is.ItemTypeId == -1 {
 		is.Count = 0
 		is.Data = 0
 	} else {
-		var data struct {
-			Count ItemCount
-			Data  ItemData
+		countUint8, err := ps.readUint8(reader)
+		if err != nil {
+			return err
 		}
-		if err = binary.Read(reader, binary.BigEndian, &data); err != nil {
-			return
+		dataUint16, err := ps.readUint16(reader)
+		if err != nil {
+			return err
 		}
 
-		is.Count = data.Count
-		is.Data = data.Data
+		is.Count = ItemCount(countUint8)
+		is.Data = ItemData(dataUint16)
 	}
 	return
 }
 
 func (is *ItemSlot) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
-	if is.ItemTypeId == -1 {
-		if err = binary.Write(writer, binary.BigEndian, &is.ItemTypeId); err != nil {
+	if err = ps.writeUint16(writer, uint16(is.ItemTypeId)); err != nil {
+		return
+	}
+
+	if is.ItemTypeId != -1 {
+		if err = ps.writeUint8(writer, uint8(is.Count)); err != nil {
 			return
 		}
-	} else {
-		if err = binary.Write(writer, binary.BigEndian, is); err != nil {
+		if err = ps.writeUint16(writer, uint16(is.Data)); err != nil {
 			return
 		}
 	}
+
 	return
 }
 
