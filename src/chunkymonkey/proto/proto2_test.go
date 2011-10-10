@@ -68,6 +68,40 @@ func Test_PacketLogin(t *testing.T) {
 			"\x80"+ // WorldHeight
 			"\x0c"), // MaxPlayers
 	)
+
+	// Test long username.
+	testPacketSerial(
+		t,
+		true,
+		&PacketLogin{
+			VersionOrEntityId: 5,
+			Username: "username1username2username3username4username5" +
+				"username6username7username8username9",
+			MapSeed:     123,
+			GameMode:    1,
+			Dimension:   DimensionNormal,
+			Difficulty:  GameDifficultyNormal,
+			WorldHeight: 128,
+			MaxPlayers:  12,
+		},
+		te.LiteralString("\x01"+
+			"\x00\x00\x00\x05"+ // Version/EntityID
+			"\x00\x51\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x001"+ // Username
+			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x002"+
+			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x003"+
+			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x004"+
+			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x005"+
+			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x006"+
+			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x007"+
+			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x008"+
+			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x009"+
+			"\x00\x00\x00\x00\x00\x00\x00\x7b"+ // MapSeed
+			"\x00\x00\x00\x01"+ // GameMode
+			"\x00"+ // Dimension
+			"\x02"+ // Difficulty
+			"\x80"+ // WorldHeight
+			"\x0c"), // MaxPlayers
+	)
 }
 
 func Test_PacketUseEntity(t *testing.T) {
@@ -294,13 +328,47 @@ func Test_PacketItemData(t *testing.T) {
 	)
 }
 
-func Benchmark_writeString16(b *testing.B) {
+func Benchmark_Packet_Old_ReadString16(b *testing.B) {
+	data := []byte("\x08\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e")
+	for i := 0; i < b.N; i++ {
+		input := bytes.NewBuffer(data)
+		_, _ = readString16(input)
+		input.Reset()
+	}
+}
+
+func Benchmark_Packet_New_ReadString16(b *testing.B) {
+	var ps PacketSerializer
+	data := []byte("\x08\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e")
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		input := bytes.NewBuffer(data)
+		_, _ = ps.readString16(input)
+		input.Reset()
+	}
+}
+
+func Benchmark_Packet_Old_WriteString16(b *testing.B) {
 	output := bytes.NewBuffer(make([]byte, 0, 1024))
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		_ = writeString16(output, "username")
+		output.Reset()
+	}
+}
+
+func Benchmark_Packet_New_WriteString16(b *testing.B) {
+	output := bytes.NewBuffer(make([]byte, 0, 1024))
+	var ps PacketSerializer
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_ = ps.writeString16(output, "username")
 		output.Reset()
 	}
 }

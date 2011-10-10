@@ -49,8 +49,8 @@ type IMarshaler interface {
 // to be one. It exercises the freedom of having only limited types of packet
 // structure partly for simplicity, and partly to allow for optimizations.
 type PacketSerializer struct {
-	// Scratch space to be able to encode up to 64bit values without allocating.
-	scratch [8]byte
+	// Scratch space to be able to encode up to 32 bytes without allocating.
+	scratch [32]byte
 }
 
 func (ps *PacketSerializer) ReadPacket(reader io.Reader, fromClient bool) (packet interface{}, err os.Error) {
@@ -185,19 +185,11 @@ func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value) (err
 
 	case reflect.String:
 		// TODO Maybe the tag field could/should suggest a max length.
-		lengthUint16, err := ps.readUint16(reader)
+		str, err := ps.readString16(reader)
 		if err != nil {
 			return
 		}
-		length := int16(lengthUint16)
-		if length < 0 {
-			return ErrorLengthNegative
-		}
-		codepoints := make([]uint16, length)
-		if err = binary.Read(reader, binary.BigEndian, codepoints); err != nil {
-			return
-		}
-		value.SetString(encodeUtf8(codepoints))
+		value.SetString(str)
 
 	default:
 		typ := value.Type()
@@ -281,15 +273,7 @@ func (ps *PacketSerializer) writeData(writer io.Writer, value reflect.Value) (er
 		err = ps.writeFloat64(writer, value.Float())
 
 	case reflect.String:
-		lengthInt := value.Len()
-		if lengthInt > math.MaxInt16 {
-			return ErrorStrTooLong
-		}
-		if err = ps.writeUint16(writer, uint16(lengthInt)); err != nil {
-			return
-		}
-		codepoints := decodeUtf8(value.String())
-		err = binary.Write(writer, binary.BigEndian, codepoints)
+		err = ps.writeString16(writer, value.String())
 
 	default:
 		typ := value.Type()
@@ -386,4 +370,55 @@ func (ps *PacketSerializer) readFloat64(reader io.Reader) (v float64, err os.Err
 }
 func (ps *PacketSerializer) writeFloat64(writer io.Writer, v float64) (err os.Error) {
 	return ps.writeUint64(writer, math.Float64bits(v))
+}
+
+// read/write string16
+func (ps *PacketSerializer) readString16(reader io.Reader) (v string, err os.Error) {
+	lengthUint16, err := ps.readUint16(reader)
+	if err != nil {
+		return
+	}
+	length := int(int16(lengthUint16))
+	if length < 0 {
+		return "", ErrorLengthNegative
+	}
+
+	codepoints := make([]int, length)
+	codepointIndex := 0
+	maxCp := len(ps.scratch) >> 1
+
+	for cpToRead := length; cpToRead > 0; {
+		curCpToRead := cpToRead
+		if curCpToRead > maxCp {
+			curCpToRead = maxCp
+		}
+		cpToRead -= curCpToRead
+		bytesToRead := curCpToRead << 1
+
+		// Read UCS-2BE data.
+		if _, err = io.ReadFull(reader, ps.scratch[0:bytesToRead]); err != nil {
+			return
+		}
+
+		// Encode as UTF-8.
+		for i := 0; i < bytesToRead; i += 2 {
+			codepoints[codepointIndex] = (int(ps.scratch[i]) << 8) | int(ps.scratch[i+1])
+			codepointIndex++
+		}
+	}
+
+	return string(codepoints[:codepointIndex]), err
+}
+func (ps *PacketSerializer) writeString16(writer io.Writer, v string) (err os.Error) {
+	// TODO optimize
+	lengthInt := len(v)
+	if lengthInt > math.MaxInt16 {
+		return ErrorStrTooLong
+	}
+	if err = ps.writeUint16(writer, uint16(lengthInt)); err != nil {
+		return
+	}
+	codepoints := decodeUtf8(v)
+	err = binary.Write(writer, binary.BigEndian, codepoints)
+	return
 }
