@@ -7,6 +7,7 @@ import (
 	"os"
 	"math"
 	"reflect"
+	"utf8"
 )
 
 // Possible error values for reading and writing packets.
@@ -400,7 +401,7 @@ func (ps *PacketSerializer) readString16(reader io.Reader) (v string, err os.Err
 			return
 		}
 
-		// Encode as UTF-8.
+		// Extract codepoints.
 		for i := 0; i < bytesToRead; i += 2 {
 			codepoints[codepointIndex] = (int(ps.scratch[i]) << 8) | int(ps.scratch[i+1])
 			codepointIndex++
@@ -410,15 +411,30 @@ func (ps *PacketSerializer) readString16(reader io.Reader) (v string, err os.Err
 	return string(codepoints[:codepointIndex]), err
 }
 func (ps *PacketSerializer) writeString16(writer io.Writer, v string) (err os.Error) {
-	// TODO optimize
-	lengthInt := len(v)
-	if lengthInt > math.MaxInt16 {
-		return ErrorStrTooLong
-	}
-	if err = ps.writeUint16(writer, uint16(lengthInt)); err != nil {
+	if err = ps.writeUint16(writer, uint16(utf8.RuneCountInString(v))); err != nil {
 		return
 	}
-	codepoints := decodeUtf8(v)
-	err = binary.Write(writer, binary.BigEndian, codepoints)
+
+	outIndex := 0
+	for _, cp := range v {
+		if cp > maxUcs2Char {
+			cp = ucs2ReplChar
+		}
+		ps.scratch[outIndex] = byte(cp >> 8)
+		ps.scratch[outIndex+1] = byte(cp & 0xff)
+		outIndex += 2
+
+		if outIndex >= len(ps.scratch) {
+			if _, err = writer.Write(ps.scratch[0:outIndex]); err != nil {
+				return
+			}
+			outIndex = 0
+		}
+	}
+
+	if outIndex > 0 {
+		_, err = writer.Write(ps.scratch[0:outIndex])
+	}
+
 	return
 }
