@@ -68,25 +68,19 @@ func Test_PacketLogin(t *testing.T) {
 			"\x80"+ // WorldHeight
 			"\x0c"), // MaxPlayers
 	)
+}
 
+func Test_PacketHandshake(t *testing.T) {
 	// Test long username.
 	testPacketSerial(
 		t,
 		true,
-		&PacketLogin{
-			VersionOrEntityId: 5,
-			Username: "username1username2username3username4username5" +
+		&PacketHandshake{
+			UsernameOrHash: "username1username2username3username4username5" +
 				"username6username7username8username9",
-			MapSeed:     123,
-			GameMode:    1,
-			Dimension:   DimensionNormal,
-			Difficulty:  GameDifficultyNormal,
-			WorldHeight: 128,
-			MaxPlayers:  12,
 		},
-		te.LiteralString("\x01"+
-			"\x00\x00\x00\x05"+ // Version/EntityID
-			"\x00\x51\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x001"+ // Username
+		te.LiteralString("\x02"+
+			"\x00\x51\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x001"+
 			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x002"+
 			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x003"+
 			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x004"+
@@ -94,13 +88,18 @@ func Test_PacketLogin(t *testing.T) {
 			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x006"+
 			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x007"+
 			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x008"+
-			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x009"+
-			"\x00\x00\x00\x00\x00\x00\x00\x7b"+ // MapSeed
-			"\x00\x00\x00\x01"+ // GameMode
-			"\x00"+ // Dimension
-			"\x02"+ // Difficulty
-			"\x80"+ // WorldHeight
-			"\x0c"), // MaxPlayers
+			"\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e\x009"),
+	)
+
+	// Test non-ASCII
+	testPacketSerial(
+		t,
+		true,
+		&PacketHandshake{
+			UsernameOrHash: "üßərnáme",
+		},
+		te.LiteralString("\x02"+
+			"\x00\x08\x00\xfc\x00\xdf\x02\x59\x00r\x00n\x00\xe1\x00m\x00e"),
 	)
 }
 
