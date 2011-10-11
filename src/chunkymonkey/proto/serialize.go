@@ -384,9 +384,10 @@ func (ps *PacketSerializer) readString16(reader io.Reader) (v string, err os.Err
 		return "", ErrorLengthNegative
 	}
 
-	codepoints := make([]int, length)
-	codepointIndex := 0
+	// Most likely that the string will be this long, assuming no non-ASCII characters.
+	output := make([]byte, 0, length)
 	maxCp := len(ps.scratch) >> 1
+	var encChar [4]byte
 
 	for cpToRead := length; cpToRead > 0; {
 		curCpToRead := cpToRead
@@ -403,12 +404,16 @@ func (ps *PacketSerializer) readString16(reader io.Reader) (v string, err os.Err
 
 		// Extract codepoints.
 		for i := 0; i < bytesToRead; i += 2 {
-			codepoints[codepointIndex] = (int(ps.scratch[i]) << 8) | int(ps.scratch[i+1])
-			codepointIndex++
+			codepoint := (int(ps.scratch[i]) << 8) | int(ps.scratch[i+1])
+
+			nBytes := utf8.EncodeRune(encChar[:], codepoint)
+			for j := 0; j < nBytes; j++ {
+				output = append(output, encChar[j])
+			}
 		}
 	}
 
-	return string(codepoints[:codepointIndex]), err
+	return string(output), nil
 }
 func (ps *PacketSerializer) writeString16(writer io.Writer, v string) (err os.Error) {
 	if err = ps.writeUint16(writer, uint16(utf8.RuneCountInString(v))); err != nil {
