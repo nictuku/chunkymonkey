@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"rand"
+	"strings"
 	"sync"
 	"time"
 
@@ -54,6 +55,7 @@ type Player struct {
 	playerClient   playerClient
 	shardConnecter gamerules.IShardConnecter
 	conn           net.Conn
+	rxPktSerial    proto.PacketSerializer // Used to read packets in receiveLoop.
 	name           string
 	loginComplete  bool
 	spawnComplete  bool
@@ -75,6 +77,7 @@ type Player struct {
 
 	onDisconnect chan<- EntityId
 	mainQueue    chan func(*Player)
+	rxQueue      chan interface{}
 	txQueue      chan []byte
 	txErrChan    chan os.Error
 	rxErrChan    chan os.Error
@@ -316,47 +319,111 @@ func (player *Player) Stop() {
 // Note: any packet handlers that could change the player state or read a
 // changeable state must use player.lock
 
-func (player *Player) PacketKeepAlive(id int32) {
-	player.pingReceived(id)
-}
+func (player *Player) handlePacket(pkt interface{}) {
+	switch pkt := pkt.(type) {
+	case *proto.PacketKeepAlive:
+		player.handlePacketKeepAlive(pkt)
+	case *proto.PacketLogin:
+		player.handlePacketLogin(pkt)
+	case *proto.PacketHandshake:
+		player.handlePacketHandshake(pkt)
+	case *proto.PacketChatMessage:
+		player.handlePacketChatMessage(pkt)
+	case *proto.PacketUseEntity:
+		player.handlePacketUseEntity(pkt)
+	case *proto.PacketRespawn:
+		player.handlePacketRespawn(pkt)
+	case *proto.PacketPlayer:
+		player.handlePacketPlayer(pkt)
+	case *proto.PacketPlayerPosition:
+		player.handlePacketPlayerPosition(pkt)
+	case *proto.PacketPlayerLook:
+		player.handlePacketPlayerLook(pkt)
+	case *proto.PacketPlayerPositionLook:
+		player.handlePacketPlayerPositionLook(pkt)
+	case *proto.PacketPlayerBlockHit:
+		player.handlePacketPlayerBlockHit(pkt)
+	case *proto.PacketPlayerBlockInteract:
+		player.handlePacketPlayerBlockInteract(pkt)
+	case *proto.PacketPlayerHoldingChange:
+		player.handlePacketPlayerHoldingChange(pkt)
+	case *proto.PacketEntityAnimation:
+		player.handlePacketEntityAnimation(pkt)
+	case *proto.PacketEntityAction:
+		player.handlePacketEntityAction(pkt)
+	case *proto.PacketWindowOpen:
+		player.handlePacketWindowOpen(pkt)
+	case *proto.PacketWindowClose:
+		player.handlePacketWindowClose(pkt)
+	case *proto.PacketWindowClick:
+		player.handlePacketWindowClick(pkt)
+	case *proto.PacketWindowTransaction:
+		player.handlePacketWindowTransaction(pkt)
+	case *proto.PacketCreativeInventoryAction:
+		player.handlePacketCreativeInventoryAction(pkt)
+	case *proto.PacketSignUpdate:
+		player.handlePacketSignUpdate(pkt)
+	case *proto.PacketServerListPing:
+		player.handlePacketServerListPing(pkt)
+	case *proto.PacketDisconnect:
+		player.handlePacketDisconnect(pkt)
 
-func (player *Player) PacketServerLogin(username string) {
-	// Unexpected packet.
-	player.Stop()
-}
-
-func (player *Player) PacketServerHandshake(username string) {
-	// Unexpected packet.
-	player.Stop()
-}
-
-func (player *Player) PacketChatMessage(message string) {
-	prefix := gamerules.CommandFramework.Prefix()
-	if message[0:len(prefix)] == prefix {
-		// We pass the IPlayerClient to the command framework to avoid having
-		// to fetch it as the first part of every command.
-		gamerules.CommandFramework.Process(&player.playerClient, message, player.game)
-	} else {
-		player.sendChatMessage(fmt.Sprintf("<%s> %s", player.name, message), true)
+	default:
+		log.Printf("%v: unhandled packet type %T", pkt)
 	}
 }
 
-func (player *Player) PacketEntityAction(entityId EntityId, action EntityAction) {
+func (player *Player) handlePacketKeepAlive(pkt *proto.PacketKeepAlive) {
+	player.pingReceived(pkt.Id)
 }
 
-func (player *Player) PacketUseEntity(user EntityId, target EntityId, leftClick bool) {
+func (player *Player) handlePacketLogin(pkt *proto.PacketLogin) {
+	// Unexpected packet.
+	player.Stop()
 }
 
-func (player *Player) PacketRespawn(dimension DimensionId, unknown int8, gameType GameType, worldHeight int16, mapSeed RandomSeed) {
+func (player *Player) handlePacketHandshake(pkt *proto.PacketHandshake) {
+	// Unexpected packet.
+	player.Stop()
 }
 
-func (player *Player) PacketPlayer(onGround bool) {
+func (player *Player) handlePacketChatMessage(pkt *proto.PacketChatMessage) {
+	prefix := gamerules.CommandFramework.Prefix()
+	if strings.HasPrefix(pkt.Message, prefix) {
+		// We pass the IPlayerClient to the command framework to avoid having
+		// to fetch it as the first part of every command.
+		gamerules.CommandFramework.Process(&player.playerClient, pkt.Message, player.game)
+	} else {
+		player.sendChatMessage(fmt.Sprintf("<%s> %s", player.name, pkt.Message), true)
+	}
 }
 
-func (player *Player) PacketPlayerPosition(position *AbsXyz, stance AbsCoord, onGround bool) {
-	player.lock.Lock()
-	defer player.lock.Unlock()
+func (player *Player) handlePacketEntityAction(pkt *proto.PacketEntityAction) {
+}
 
+func (player *Player) handlePacketUseEntity(pkt *proto.PacketUseEntity) {
+}
+
+func (player *Player) handlePacketRespawn(pkt *proto.PacketRespawn) {
+}
+
+func (player *Player) handlePacketPlayer(pkt *proto.PacketPlayer) {
+}
+
+func (player *Player) handlePacketPlayerPosition(pkt *proto.PacketPlayerPosition) {
+	player.handleMove(pkt.Position(), pkt.Stance)
+}
+
+func (player *Player) handlePacketPlayerLook(pkt *proto.PacketPlayerLook) {
+	player.handleLook(pkt.Look)
+}
+
+func (player *Player) handlePacketPlayerPositionLook(pkt *proto.PacketPlayerPositionLook) {
+	player.handleMove(pkt.Position(true), pkt.Stance(true))
+	player.handleLook(pkt.Look)
+}
+
+func (player *Player) handleMove(position AbsXyz, stance AbsCoord) {
 	if !player.spawnComplete {
 		// Ignore position packets from player until spawned at initial position
 		// with chunk loaded.
@@ -368,9 +435,9 @@ func (player *Player) PacketPlayerPosition(position *AbsXyz, stance AbsCoord, on
 			position.X, position.Y, position.Z)
 		return
 	}
-	player.position = *position
+	player.position = position
 	player.height = stance - position.Y
-	player.chunkSubs.Move(position)
+	player.chunkSubs.Move(&position)
 
 	// TODO: Should keep track of when players enter/leave their mutual radius
 	// of "awareness". I.e a client should receive a RemoveEntity packet when
@@ -379,12 +446,8 @@ func (player *Player) PacketPlayerPosition(position *AbsXyz, stance AbsCoord, on
 	// of each other.
 }
 
-func (player *Player) PacketPlayerLook(look *LookDegrees, onGround bool) {
-	player.lock.Lock()
-	defer player.lock.Unlock()
-
-	// TODO input validation
-	player.look = *look
+func (player *Player) handleLook(look LookDegrees) {
+	player.look = look
 
 	// Update playerData on current chunk.
 	if shard, ok := player.chunkSubs.CurrentShardClient(); ok {
@@ -392,13 +455,10 @@ func (player *Player) PacketPlayerLook(look *LookDegrees, onGround bool) {
 	}
 }
 
-func (player *Player) PacketPlayerBlockHit(status DigStatus, target *BlockXyz, face Face) {
-	player.lock.Lock()
-	defer player.lock.Unlock()
+func (player *Player) handlePacketPlayerBlockHit(pkt *proto.PacketPlayerBlockHit) {
 
-	// This packet handles 'throwing' an item as well, with status = 4, and
-	// the zero values for target and face, so check for that.
-	if status == DigDropItem && target.IsZero() && face == 0 {
+	if pkt.Status == DigDropItem {
+		// Thrown item.
 		blockLoc := player.position.ToBlockXyz()
 		shardClient, _, ok := player.chunkSubs.ShardClientForBlockXyz(blockLoc)
 		if !ok {
@@ -413,69 +473,63 @@ func (player *Player) PacketPlayerBlockHit(status DigStatus, target *BlockXyz, f
 			position.Y += player.height
 			shardClient.ReqDropItem(itemToThrow, position, velocity, TicksPerSecond/2)
 		}
-		return
-	}
+	} else {
+		// Block hit.
 
-	// Validate that the player is actually somewhere near the block.
-	targetAbsPos := target.MidPointToAbsXyz()
-	if !targetAbsPos.IsWithinDistanceOf(&player.position, MaxInteractDistance) {
-		log.Printf("Player/PacketPlayerBlockHit: ignoring player dig at %v (too far away)", target)
-		return
-	}
+		// Validate that the player is actually somewhere near the block.
+		targetAbsPos := pkt.Block.MidPointToAbsXyz()
+		if !targetAbsPos.IsWithinDistanceOf(player.position, MaxInteractDistance) {
+			log.Printf("Player/PacketPlayerBlockHit: ignoring player dig at %v (too far away)", pkt.Block)
+			return
+		}
 
-	// TODO measure the dig time on the target block and relay to the shard to
-	// stop speed hacking (based on block type and tool used - non-trivial).
+		// TODO measure the dig time on the target block and relay to the shard to
+		// stop speed hacking (based on block type and tool used - non-trivial).
 
-	shardClient, _, ok := player.chunkSubs.ShardClientForBlockXyz(target)
-	if ok {
-		held, _ := player.inventory.HeldItem()
-		shardClient.ReqHitBlock(held, *target, status, face)
+		shardClient, _, ok := player.chunkSubs.ShardClientForBlockXyz(&pkt.Block)
+		if ok {
+			held, _ := player.inventory.HeldItem()
+			shardClient.ReqHitBlock(held, pkt.Block, pkt.Status, pkt.Face)
+		}
 	}
 }
 
-func (player *Player) PacketPlayerBlockInteract(itemId ItemTypeId, target *BlockXyz, face Face, amount ItemCount, uses ItemData) {
-	if face < FaceMinValid || face > FaceMaxValid {
+func (player *Player) handlePacketPlayerBlockInteract(pkt *proto.PacketPlayerBlockInteract) {
+	if pkt.Face < FaceMinValid || pkt.Face > FaceMaxValid {
 		// TODO sometimes FaceNull means something. This case should be covered.
-		log.Printf("Player/PacketPlayerBlockInteract: invalid face %d", face)
+		log.Printf("Player/PacketPlayerBlockInteract: invalid face %d", pkt.Face)
 		return
 	}
-
-	player.lock.Lock()
-	defer player.lock.Unlock()
 
 	// Validate that the player is actually somewhere near the block.
-	targetAbsPos := target.MidPointToAbsXyz()
-	if !targetAbsPos.IsWithinDistanceOf(&player.position, MaxInteractDistance) {
-		log.Printf("Player/PacketPlayerBlockInteract: ignoring player interact at %v (too far away)", target)
+	targetAbsPos := pkt.Block.MidPointToAbsXyz()
+	if !targetAbsPos.IsWithinDistanceOf(player.position, MaxInteractDistance) {
+		log.Printf("Player/PacketPlayerBlockInteract: ignoring player interact at %v (too far away)", pkt.Block)
 		return
 	}
 
-	shardClient, _, ok := player.chunkSubs.ShardClientForBlockXyz(target)
+	shardClient, _, ok := player.chunkSubs.ShardClientForBlockXyz(&pkt.Block)
 	if ok {
 		held, _ := player.inventory.HeldItem()
-		shardClient.ReqInteractBlock(held, *target, face)
+		shardClient.ReqInteractBlock(held, pkt.Block, pkt.Face)
 	}
 }
 
-func (player *Player) PacketHoldingChange(slotId SlotId) {
-	player.lock.Lock()
-	defer player.lock.Unlock()
-	player.inventory.SetHolding(slotId)
+func (player *Player) handlePacketPlayerHoldingChange(pkt *proto.PacketPlayerHoldingChange) {
+	player.inventory.SetHolding(pkt.SlotId)
 }
 
-func (player *Player) PacketEntityAnimation(entityId EntityId, animation EntityAnimation) {
+func (player *Player) handlePacketEntityAnimation(pkt *proto.PacketEntityAnimation) {
 }
 
-func (player *Player) PacketWindowClose(windowId WindowId) {
-	player.lock.Lock()
-	defer player.lock.Unlock()
+func (player *Player) handlePacketWindowOpen(pkt *proto.PacketWindowOpen) {
+}
 
+func (player *Player) handlePacketWindowClose(pkt *proto.PacketWindowClose) {
 	player.closeCurrentWindow(false)
 }
 
-func (player *Player) PacketWindowClick(windowId WindowId, slotId SlotId, rightClick bool, txId TxId, shiftClick bool, expectedSlot *proto.WindowSlot) {
-	player.lock.Lock()
-	defer player.lock.Unlock()
+func (player *Player) handlePacketWindowClick(pkt *proto.PacketWindowClick) {
 
 	// Note that the expectedSlot parameter is currently ignored. The item(s)
 	// involved are worked out from the server-side data.
@@ -486,34 +540,26 @@ func (player *Player) PacketWindowClick(windowId WindowId, slotId SlotId, rightC
 	// TODO support for more windows
 
 	var clickedWindow window.IWindow
-	if windowId == WindowIdInventory {
+	if pkt.WindowId == WindowIdInventory {
 		clickedWindow = &player.inventory
-	} else if player.curWindow != nil && player.curWindow.WindowId() == windowId {
+	} else if player.curWindow != nil && player.curWindow.WindowId() == pkt.WindowId {
 		clickedWindow = player.curWindow
 	} else {
 		log.Printf(
 			"Warning: ignored window click on unknown window ID %d",
-			windowId)
+			pkt.WindowId)
 	}
-
-	expectedSlotContent := &gamerules.Slot{
-		ItemTypeId: expectedSlot.ItemTypeId,
-		Count:      expectedSlot.Count,
-		Data:       expectedSlot.Data,
-	}
-	// The client tends to send item IDs even when the count is zero.
-	expectedSlotContent.Normalize()
 
 	txState := TxStateRejected
 
 	click := gamerules.Click{
-		SlotId:     slotId,
+		SlotId:     pkt.Slot,
 		Cursor:     player.cursor,
-		RightClick: rightClick,
-		ShiftClick: shiftClick,
-		TxId:       txId,
+		RightClick: pkt.RightClick,
+		ShiftClick: pkt.Shift,
+		TxId:       pkt.TxId,
 	}
-	click.ExpectedSlot.SetWindowSlot(expectedSlot)
+	click.ExpectedSlot.SetItemSlot(&pkt.ExpectedSlot)
 
 	if clickedWindow != nil {
 		txState = clickedWindow.Click(&click)
@@ -523,7 +569,7 @@ func (player *Player) PacketWindowClick(windowId WindowId, slotId SlotId, rightC
 	case TxStateAccepted, TxStateRejected:
 		// Inform client of operation status.
 		buf := new(bytes.Buffer)
-		proto.WriteWindowTransaction(buf, windowId, txId, txState == TxStateAccepted)
+		proto.WriteWindowTransaction(buf, pkt.WindowId, pkt.TxId, txState == TxStateAccepted)
 		player.cursor = click.Cursor
 		player.cursor.SendUpdate(buf, WindowIdCursor, SlotIdCursor)
 		player.TransmitPacket(buf.Bytes())
@@ -532,23 +578,25 @@ func (player *Player) PacketWindowClick(windowId WindowId, slotId SlotId, rightC
 	}
 }
 
-func (player *Player) PacketWindowTransaction(windowId WindowId, txId TxId, accepted bool) {
+func (player *Player) handlePacketWindowTransaction(pkt *proto.PacketWindowTransaction) {
 	// TODO investigate when this packet is sent from the client and what it
 	// means when it does get sent.
-	log.Printf(
-		"Got PacketWindowTransaction from player %q: windowId=%d txId=%d accepted=%t",
-		player.name, windowId, txId, accepted)
+	log.Printf("Got PacketWindowTransaction from player %q: %#v", player.name, pkt)
 }
 
-func (player *Player) PacketSignUpdate(position *BlockXyz, lines [4]string) {
+func (player *Player) handlePacketCreativeInventoryAction(pkt *proto.PacketCreativeInventoryAction) {
 }
 
-func (player *Player) PacketServerListPing() {
+func (player *Player) handlePacketSignUpdate(pkt *proto.PacketSignUpdate) {
+}
+
+func (player *Player) handlePacketServerListPing(pkt *proto.PacketServerListPing) {
 	// Shouldn't receive this packet once logged in.
+	player.Stop()
 }
 
-func (player *Player) PacketDisconnect(reason string) {
-	log.Printf("Player %s disconnected reason=%s", player.name, reason)
+func (player *Player) handlePacketDisconnect(pkt *proto.PacketDisconnect) {
+	log.Printf("Player %s disconnected reason=%q", pkt.Reason)
 
 	player.sendChatMessage(fmt.Sprintf("%s has left", player.name), false)
 
@@ -558,10 +606,11 @@ func (player *Player) PacketDisconnect(reason string) {
 func (player *Player) receiveLoop() {
 	player.rxRunning = true
 	for player.rxRunning {
-		err := proto.ServerReadPacket(player.conn, player)
-		if err != nil {
+		if pkt, err := player.rxPktSerial.ReadPacket(player.conn, true); err != nil {
 			player.rxErrChan <- err
 			return
+		} else {
+			player.rxQueue <- pkt
 		}
 	}
 }
@@ -717,6 +766,9 @@ MAINLOOP:
 				return
 			}
 			player.runQueuedCall(f)
+
+		case pkt := <-player.rxQueue:
+			player.handlePacket(pkt)
 
 		case _ = <-player.ping.timer.C:
 			player.pingTimeout()

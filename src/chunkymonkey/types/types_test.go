@@ -143,13 +143,13 @@ func Test_AbsXyz_IsWithinDistanceOf(t *testing.T) {
 				Y: test.b.Y + offset.y,
 				Z: test.b.Z + offset.z,
 			}
-			result := a.IsWithinDistanceOf(&b, test.dist)
+			result := a.IsWithinDistanceOf(b, test.dist)
 			if test.expected != result {
 				t.Errorf("%v.IsWithinDistanceOf(%v, %f)=>%t expected %t", a, b, test.dist, result, test.expected)
 			}
 
 			// Test the reverse, should be the same.
-			result = b.IsWithinDistanceOf(&a, test.dist)
+			result = b.IsWithinDistanceOf(a, test.dist)
 			if test.expected != result {
 				t.Errorf("%v.IsWithinDistanceOf(%v, %f)=>%t expected %t", b, a, test.dist, result, test.expected)
 			}

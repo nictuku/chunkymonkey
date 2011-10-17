@@ -82,16 +82,28 @@ func (s *Slot) Attr() (ItemTypeId, ItemCount, ItemData) {
 	return s.ItemTypeId, s.Count, s.Data
 }
 
+func (s *Slot) SetItemSlot(itemSlot *proto.ItemSlot) {
+	if itemSlot.ItemTypeId == -1 || itemSlot.ItemTypeId == 0 {
+		s.ItemTypeId = 0
+		s.Count = 0
+		s.Data = 0
+	} else {
+		s.ItemTypeId = itemSlot.ItemTypeId
+		s.Count = itemSlot.Count
+		s.Data = itemSlot.Data
+	}
+}
+
 func (s *Slot) SetWindowSlot(windowSlot *proto.WindowSlot) {
 	if windowSlot.ItemTypeId == -1 || windowSlot.ItemTypeId == 0 {
 		s.ItemTypeId = 0
 		s.Count = 0
+		s.Data = 0
 	} else {
 		s.ItemTypeId = windowSlot.ItemTypeId
 		s.Count = windowSlot.Count
+		s.Data = windowSlot.Data
 	}
-	s.Data = windowSlot.Data
-
 }
 
 func (s *Slot) SendUpdate(writer io.Writer, windowId WindowId, slotId SlotId) os.Error {

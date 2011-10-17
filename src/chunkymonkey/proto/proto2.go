@@ -83,6 +83,10 @@ type PacketPlayerPosition struct {
 	OnGround        bool
 }
 
+func (pkt *PacketPlayerPosition) Position() AbsXyz {
+	return AbsXyz{pkt.X, pkt.Y, pkt.Z}
+}
+
 type PacketPlayerLook struct {
 	Look LookDegrees
 }
@@ -91,6 +95,20 @@ type PacketPlayerPositionLook struct {
 	X, Y1, Y2, Z AbsCoord
 	Look         LookDegrees
 	OnGround     bool
+}
+
+func (pkt *PacketPlayerPositionLook) Stance(fromClient bool) AbsCoord {
+	if fromClient {
+		return pkt.Y2
+	}
+	return pkt.Y1
+}
+
+func (pkt *PacketPlayerPositionLook) Position(fromClient bool) AbsXyz {
+	if fromClient {
+		return AbsXyz{pkt.X, pkt.Y1, pkt.Z}
+	}
+	return AbsXyz{pkt.X, pkt.Y2, pkt.Z}
 }
 
 type PacketPlayerBlockHit struct {

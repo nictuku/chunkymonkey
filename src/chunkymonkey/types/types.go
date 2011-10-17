@@ -554,7 +554,7 @@ func (p *AbsXyz) ToShardXz() ShardXz {
 	}
 }
 
-func (p *AbsXyz) IsWithinDistanceOf(other *AbsXyz, maxDistance AbsCoord) bool {
+func (p *AbsXyz) IsWithinDistanceOf(other AbsXyz, maxDistance AbsCoord) bool {
 	dx := p.X - other.X
 	dy := p.Y - other.Y
 	dz := p.Z - other.Z
