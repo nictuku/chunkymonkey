@@ -2,7 +2,6 @@ package gamerules
 
 import (
 	"rand"
-	"time"
 	. "chunkymonkey/types"
 	"log"
 )
@@ -21,10 +20,10 @@ func (aspect *SaplingAspect) Name() string {
 	return "Sapling"
 }
 
-var rnd = rand.New(rand.NewSource(time.Nanoseconds()))
-
 func (aspect *SaplingAspect) Tick(instance *BlockInstance) bool {
-	if rnd.Intn(1e4) >= 1e4-1 {
+	// TODO: Use a random number that is reproduceable from merely the chunk
+	// location so that the world seed produces consistent worlds.
+	if rand.Intn(1e4) >= 1e4-1 {
 		// Turn this block into a tree
 		return aspect.makeTree(instance)
 	}
