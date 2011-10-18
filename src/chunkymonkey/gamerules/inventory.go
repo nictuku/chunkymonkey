@@ -1,6 +1,7 @@
 package gamerules
 
 import (
+	"fmt"
 	"os"
 
 	"chunkymonkey/proto"
@@ -272,7 +273,7 @@ func (inv *Inventory) MarshalNbt(tag *nbt.Compound) (err os.Error) {
 
 func (inv *Inventory) SlotUnmarshalNbt(tag *nbt.Compound, slotId SlotId) (err os.Error) {
 	if slotId < 0 || int(slotId) >= len(inv.slots) {
-		return os.NewError("Bad slot ID")
+		return fmt.Errorf("Bad slot ID %d (max slot=%d)", slotId, len(inv.slots)-1)
 	}
 	return inv.slots[slotId].UnmarshalNbt(tag)
 }

@@ -23,6 +23,6 @@ func NewChestInventory() (inv *ChestInventory) {
 }
 
 func (inv *ChestInventory) MarshalNbt(tag *nbt.Compound) (err os.Error) {
-	tag.Set("id", &nbt.String{"Furnace"})
+	tag.Set("id", &nbt.String{"Chest"})
 	return inv.Inventory.MarshalNbt(tag)
 }

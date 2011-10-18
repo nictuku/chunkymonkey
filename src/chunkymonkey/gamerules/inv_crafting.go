@@ -1,7 +1,10 @@
 package gamerules
 
 import (
+	"os"
+
 	. "chunkymonkey/types"
+	"nbt"
 )
 
 const (
@@ -42,6 +45,11 @@ func NewWorkbenchInventory() *CraftingInventory {
 		workbenchInvCraftHeight,
 	)
 	return inv
+}
+
+func (inv *CraftingInventory) MarshalNbt(tag *nbt.Compound) (err os.Error) {
+	tag.Set("id", &nbt.String{"Workbench"})
+	return inv.Inventory.MarshalNbt(tag)
 }
 
 // Click handles window clicks from a user with special handling for crafting.
