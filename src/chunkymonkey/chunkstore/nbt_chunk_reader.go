@@ -121,7 +121,7 @@ func (r *nbtChunkReader) TileEntities() (tileEntities []gamerules.ITileEntity) {
 		}
 
 		if err := entity.UnmarshalNbt(compound); err != nil {
-			log.Printf("%T.UnmarshalNbt failed: %s", err)
+			log.Printf("%T.UnmarshalNbt failed for %s: %s", entity, compound, err)
 			continue
 		}
 
