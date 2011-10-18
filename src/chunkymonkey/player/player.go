@@ -10,7 +10,6 @@ import (
 	"os"
 	"rand"
 	"strings"
-	"sync"
 	"time"
 
 	"chunkymonkey/gamerules"
@@ -70,10 +69,6 @@ type Player struct {
 		timestampNs int64       // Nanoseconds since epoch since last keep-alive sent.
 		timer       *time.Timer // Time until next ping, or timeout of current.
 	}
-
-	// TODO remove this lock, packet handling shouldn't use a lock, it should use
-	// a channel instead (ideally).
-	lock sync.Mutex
 
 	onDisconnect chan<- EntityId
 	mainQueue    chan func(*Player)
@@ -316,8 +311,6 @@ func (player *Player) Stop() {
 }
 
 // Start of packet handling code
-// Note: any packet handlers that could change the player state or read a
-// changeable state must use player.lock
 
 func (player *Player) handlePacket(pkt interface{}) {
 	switch pkt := pkt.(type) {
@@ -640,12 +633,6 @@ func (player *Player) TransmitPacket(packet []byte) {
 	player.txQueue <- packet
 }
 
-func (player *Player) runQueuedCall(f func(*Player)) {
-	player.lock.Lock()
-	defer player.lock.Unlock()
-	f(player)
-}
-
 // pingNew starts a new "keep-alive" ping.
 func (player *Player) pingNew() {
 	if player.ping.running {
@@ -765,7 +752,7 @@ MAINLOOP:
 			if !ok {
 				return
 			}
-			player.runQueuedCall(f)
+			f(player)
 
 		case pkt := <-player.rxQueue:
 			player.handlePacket(pkt)
@@ -926,8 +913,7 @@ func (player *Player) giveItem(atPosition *AbsXyz, item *gamerules.Slot) {
 	player.inventory.PutItem(item)
 }
 
-// Enqueue queues a function to run with the player lock within the player's
-// mainloop.
+// Enqueue queues a function to run with the within the player's mainloop.
 func (player *Player) Enqueue(f func(*Player)) {
 	if f == nil {
 		return
@@ -952,8 +938,7 @@ func (player *Player) sendChatMessage(message string, sendToSelf bool) {
 	)
 }
 
-// closeCurrentWindow closes any open window. It must be called with
-// player.lock held.
+// closeCurrentWindow closes any open window.
 func (player *Player) closeCurrentWindow(sendClosePacket bool) {
 	if player.curWindow != nil {
 		player.curWindow.Finalize(sendClosePacket)
