@@ -54,10 +54,12 @@ type Player struct {
 	playerClient   playerClient
 	shardConnecter gamerules.IShardConnecter
 	conn           net.Conn
-	rxPktSerial    proto.PacketSerializer // Used to read packets in receiveLoop.
+	txPktSerial    proto.PacketSerializer // Used to write packets in mainLoop.
 	name           string
 	loginComplete  bool
 	spawnComplete  bool
+
+	rx playerRx // Receiving packets from player client.
 
 	game gamerules.IGame
 
@@ -75,8 +77,6 @@ type Player struct {
 	rxQueue      chan interface{}
 	txQueue      chan []byte
 	txErrChan    chan os.Error
-	rxErrChan    chan os.Error
-	rxRunning    bool // Only used by the receiveLoop.
 	stopPlayer   chan bool
 
 	// The following attributes are game-logic related.
@@ -134,7 +134,6 @@ func NewPlayer(entityId EntityId, shardConnecter gamerules.IShardConnecter, conn
 		mainQueue:  make(chan func(*Player), 128),
 		txQueue:    make(chan []byte, 128),
 		txErrChan:  make(chan os.Error, 1),
-		rxErrChan:  make(chan os.Error, 1),
 		stopPlayer: make(chan bool, 1),
 
 		game: game,
@@ -142,6 +141,7 @@ func NewPlayer(entityId EntityId, shardConnecter gamerules.IShardConnecter, conn
 		onDisconnect: onDisconnect,
 	}
 
+	player.rx.init(conn)
 	player.playerClient.Init(player)
 	player.inventory.Init(player.EntityId, player)
 
@@ -296,7 +296,7 @@ func (player *Player) Run() {
 	proto.WriteSpawnPosition(buf, &player.spawnBlock)
 	player.TransmitPacket(buf.Bytes())
 
-	go player.receiveLoop()
+	go player.rx.loop()
 	go player.transmitLoop()
 	go player.mainLoop()
 }
@@ -596,18 +596,6 @@ func (player *Player) handlePacketDisconnect(pkt *proto.PacketDisconnect) {
 	player.Stop()
 }
 
-func (player *Player) receiveLoop() {
-	player.rxRunning = true
-	for player.rxRunning {
-		if pkt, err := player.rxPktSerial.ReadPacket(player.conn, true); err != nil {
-			player.rxErrChan <- err
-			return
-		} else {
-			player.rxQueue <- pkt
-		}
-	}
-}
-
 // End of packet handling code
 
 func (player *Player) transmitLoop() {
@@ -731,6 +719,8 @@ func (player *Player) mainLoop() {
 		player.game.BroadcastPacket(buf.Bytes())
 	}()
 
+	defer player.rx.Stop()
+
 	expVarPlayerConnectionCount.Add(1)
 	defer expVarPlayerDisconnectionCount.Add(1)
 
@@ -754,13 +744,12 @@ MAINLOOP:
 			}
 			f(player)
 
-		case pkt := <-player.rxQueue:
-			player.handlePacket(pkt)
-
 		case _ = <-player.ping.timer.C:
 			player.pingTimeout()
 
-		case err := <-player.rxErrChan:
+		case pkt := <-player.rx.RecvPkt:
+			player.handlePacket(pkt)
+		case err := <-player.rx.RecvErr:
 			log.Printf("%v: receive loop failed: %v", player, err)
 			player.Stop()
 
