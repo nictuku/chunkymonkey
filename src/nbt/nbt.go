@@ -40,6 +40,7 @@ import (
 
 // ITag is the interface for all tags that can be represented in an NBT tree.
 type ITag interface {
+	String() string
 	Type() TagType
 	Read(io.Reader) os.Error
 	Write(io.Writer) os.Error
@@ -107,6 +108,10 @@ type Byte struct {
 	Value int8
 }
 
+func (b *Byte) String() string {
+	return fmt.Sprintf("Byte(%d)", b.Value)
+}
+
 func (*Byte) Type() TagType {
 	return TagByte
 }
@@ -125,6 +130,10 @@ func (b *Byte) Write(writer io.Writer) (err os.Error) {
 
 type Short struct {
 	Value int16
+}
+
+func (s *Short) String() string {
+	return fmt.Sprintf("Short(%d)", s.Value)
 }
 
 func (*Short) Type() TagType {
@@ -147,6 +156,10 @@ type Int struct {
 	Value int32
 }
 
+func (i *Int) String() string {
+	return fmt.Sprintf("Int(%d)", i.Value)
+}
+
 func (*Int) Type() TagType {
 	return TagInt
 }
@@ -165,6 +178,10 @@ func (*Int) Lookup(path string) ITag {
 
 type Long struct {
 	Value int64
+}
+
+func (l *Long) String() string {
+	return fmt.Sprintf("Long(%d)", l.Value)
 }
 
 func (*Long) Type() TagType {
@@ -187,6 +204,10 @@ type Float struct {
 	Value float32
 }
 
+func (f *Float) String() string {
+	return fmt.Sprintf("Float(%f)", f.Value)
+}
+
 func (*Float) Type() TagType {
 	return TagFloat
 }
@@ -207,6 +228,10 @@ type Double struct {
 	Value float64
 }
 
+func (d *Double) String() string {
+	return fmt.Sprintf("Double(%f)", d.Value)
+}
+
 func (*Double) Type() TagType {
 	return TagDouble
 }
@@ -225,6 +250,10 @@ func (*Double) Lookup(path string) ITag {
 
 type ByteArray struct {
 	Value []byte
+}
+
+func (b *ByteArray) String() string {
+	return fmt.Sprintf("ByteArray(%x)", b.Value)
 }
 
 func (*ByteArray) Type() TagType {
@@ -268,6 +297,10 @@ type String struct {
 	Value string
 }
 
+func (s *String) String() string {
+	return fmt.Sprintf("String(%q)", s.Value)
+}
+
 func (*String) Type() TagType {
 	return TagString
 }
@@ -308,6 +341,14 @@ func (*String) Lookup(path string) ITag {
 type List struct {
 	TagType TagType
 	Value   []ITag
+}
+
+func (l *List) String() string {
+	subStrs := make([]string, len(l.Value))
+	for i := range l.Value {
+		subStrs[i] = l.Value[i].String()
+	}
+	return fmt.Sprintf("List(%s)", strings.Join(subStrs, ", "))
 }
 
 func (*List) Type() TagType {
@@ -369,6 +410,16 @@ func (*List) Lookup(path string) ITag {
 
 type Compound struct {
 	Tags map[string]ITag
+}
+
+func (c *Compound) String() string {
+	subStrs := make([]string, len(c.Tags))
+	i := 0
+	for k, v := range c.Tags {
+		subStrs[i] = fmt.Sprintf("%q: %s", k, v)
+		i++
+	}
+	return fmt.Sprintf("Compound(%s)", strings.Join(subStrs, ", "))
 }
 
 func NewCompound() *Compound {
