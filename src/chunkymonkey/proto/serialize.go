@@ -2,6 +2,7 @@ package proto
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -14,7 +15,6 @@ import (
 var (
 	ErrorPacketNotPtr      = os.NewError("packet not passed as a pointer")
 	ErrorUnknownPacketType = os.NewError("unknown packet type")
-	ErrorUnexpectedPacket  = os.NewError("unexpected packet id")
 	ErrorPacketNil         = os.NewError("packet was passed by a nil pointer")
 	ErrorLengthNegative    = os.NewError("length was negative")
 	ErrorStrTooLong        = os.NewError("string was too long")
@@ -23,6 +23,18 @@ var (
 	ErrorMismatchingValues = os.NewError("packet data contains mismatching values")
 	ErrorInternal          = os.NewError("implementation problem with packetization")
 )
+
+type ErrorUnexpectedPacketId byte
+
+func (err ErrorUnexpectedPacketId) String() string {
+	return fmt.Sprintf("unexpected packet ID 0x%02x", byte(err))
+}
+
+type ErrorUnknownPacketId byte
+
+func (err ErrorUnknownPacketId) String() string {
+	return fmt.Sprintf("unknown packet ID 0x%02x", byte(err))
+}
 
 var (
 	// Space to read unwanted data into. As the contents of this aren't used, it
@@ -68,7 +80,7 @@ func (ps *PacketSerializer) ReadPacketExpect(reader io.Reader, fromClient bool, 
 		}
 	}
 
-	return nil, ErrorUnexpectedPacket
+	return nil, ErrorUnexpectedPacketId(pktId)
 }
 
 func (ps *PacketSerializer) ReadPacket(reader io.Reader, fromClient bool) (packet interface{}, err os.Error) {
@@ -93,7 +105,7 @@ func (ps *PacketSerializer) readPacketCommon(reader io.Reader, fromClient bool, 
 		expected = pktInfo.serverToClient
 	}
 	if !expected {
-		return nil, ErrorUnexpectedPacket
+		return nil, ErrorUnexpectedPacketId(ps.scratch[0])
 	}
 
 	value := reflect.New(pktInfo.pktType)

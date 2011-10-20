@@ -88,7 +88,8 @@ func (pkt *PacketPlayerPosition) Position() AbsXyz {
 }
 
 type PacketPlayerLook struct {
-	Look LookDegrees
+	Look     LookDegrees
+	OnGround bool
 }
 
 type PacketPlayerPositionLook struct {
