@@ -99,7 +99,9 @@ func (rf *regionFile) ReadChunkData(chunkLoc ChunkXz) (r *nbtChunkReader, err os
 	var header chunkDataHeader
 	binary.Read(rf.file, binary.BigEndian, &header)
 	if header.DataSize > maxChunkDataSize {
-		err = os.NewError("Chunk is too big for the sectors it is within.")
+		err = fmt.Errorf(
+			"Chunk is too big (%d bytes) for the sectors it is within (%d*%d - %d=%d) header.",
+			header.DataSize, sectorCount, regionFileSectorSize, chunkDataHeaderSize, maxChunkDataSize)
 		return
 	}
 
@@ -173,7 +175,7 @@ func serializeChunkData(w *nbtChunkWriter) (chunkData []byte, err os.Error) {
 
 	// Write chunk data header
 	header := chunkDataHeader{
-		DataSize: uint32(len(chunkData)),
+		DataSize: uint32(len(chunkData)) - chunkDataHeaderSize,
 		Version:  chunkCompressionZlib,
 	}
 	buffer = bytes.NewBuffer(chunkData[:0])
