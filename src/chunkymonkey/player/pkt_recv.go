@@ -2,7 +2,6 @@ package player
 
 import (
 	"io"
-	"log"
 	"os"
 
 	"chunkymonkey/proto"
@@ -25,7 +24,7 @@ type playerRx struct {
 func (p *playerRx) init(conn io.Reader) {
 	p.conn = conn
 
-	p.ctrl = make(chan struct{})
+	p.ctrl = make(chan struct{}, 1)
 
 	recvPkt := make(chan interface{})
 	p.recvPkt = recvPkt
@@ -39,7 +38,10 @@ func (p *playerRx) init(conn io.Reader) {
 }
 
 func (p *playerRx) Stop() {
-	close(p.ctrl)
+	select {
+	case p.ctrl<- struct{}{}:
+	default:
+	}
 }
 
 func (p *playerRx) loop() {
@@ -50,12 +52,9 @@ func (p *playerRx) loop() {
 		} else {
 			select {
 			case p.recvPkt <- pkt:
-			case _, ok := <-p.ctrl:
-				if !ok {
-					return
-				} else {
-					log.Print("warning - unhandled control message to playerRx")
-				}
+			case _ = <-p.ctrl:
+				// Currently the only control signal is "stop".
+				return
 			}
 		}
 	}
