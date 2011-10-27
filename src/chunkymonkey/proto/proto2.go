@@ -12,11 +12,19 @@ import (
 	. "chunkymonkey/types"
 )
 
+type IPacket interface {
+	// IsPacket doesn't do anything, it's present purely for type-checking
+	// packets.
+	IsPacket()
+}
+
 // Packet definitions.
 
 type PacketKeepAlive struct {
 	Id int32
 }
+
+func (*PacketKeepAlive) IsPacket() {}
 
 type PacketLogin struct {
 	VersionOrEntityId int32
@@ -29,17 +37,25 @@ type PacketLogin struct {
 	MaxPlayers        byte
 }
 
+func (*PacketLogin) IsPacket() {}
+
 type PacketHandshake struct {
 	UsernameOrHash string
 }
+
+func (*PacketHandshake) IsPacket() {}
 
 type PacketChatMessage struct {
 	Message string
 }
 
+func (*PacketChatMessage) IsPacket() {}
+
 type PacketTimeUpdate struct {
 	Time Ticks
 }
+
+func (*PacketTimeUpdate) IsPacket() {}
 
 type PacketEntityEquipment struct {
 	EntityId   EntityId
@@ -48,11 +64,15 @@ type PacketEntityEquipment struct {
 	Data       ItemData
 }
 
+func (*PacketEntityEquipment) IsPacket() {}
+
 type PacketSpawnPosition struct {
 	X BlockCoord
 	Y int32
 	Z BlockCoord
 }
+
+func (*PacketSpawnPosition) IsPacket() {}
 
 type PacketUseEntity struct {
 	User      EntityId
@@ -60,11 +80,15 @@ type PacketUseEntity struct {
 	LeftClick bool
 }
 
+func (*PacketUseEntity) IsPacket() {}
+
 type PacketUpdateHealth struct {
 	Health         Health
 	Food           FoodUnits
 	FoodSaturation float32
 }
+
+func (*PacketUpdateHealth) IsPacket() {}
 
 type PacketRespawn struct {
 	Dimension   DimensionId
@@ -74,14 +98,20 @@ type PacketRespawn struct {
 	MapSeed     RandomSeed
 }
 
+func (*PacketRespawn) IsPacket() {}
+
 type PacketPlayer struct {
 	OnGround bool
 }
+
+func (*PacketPlayer) IsPacket() {}
 
 type PacketPlayerPosition struct {
 	X, Y, Stance, Z AbsCoord
 	OnGround        bool
 }
+
+func (*PacketPlayerPosition) IsPacket() {}
 
 func (pkt *PacketPlayerPosition) Position() AbsXyz {
 	return AbsXyz{pkt.X, pkt.Y, pkt.Z}
@@ -92,11 +122,15 @@ type PacketPlayerLook struct {
 	OnGround bool
 }
 
+func (*PacketPlayerLook) IsPacket() {}
+
 type PacketPlayerPositionLook struct {
 	X, Y1, Y2, Z AbsCoord
 	Look         LookDegrees
 	OnGround     bool
 }
+
+func (*PacketPlayerPositionLook) IsPacket() {}
 
 func (pkt *PacketPlayerPositionLook) Stance(fromClient bool) AbsCoord {
 	if fromClient {
@@ -118,15 +152,21 @@ type PacketPlayerBlockHit struct {
 	Face   Face
 }
 
+func (*PacketPlayerBlockHit) IsPacket() {}
+
 type PacketPlayerBlockInteract struct {
 	Block BlockXyz
 	Face  Face
 	Tool  ItemSlot
 }
 
+func (*PacketPlayerBlockInteract) IsPacket() {}
+
 type PacketPlayerHoldingChange struct {
 	SlotId SlotId
 }
+
+func (*PacketPlayerHoldingChange) IsPacket() {}
 
 type PacketPlayerUseBed struct {
 	EntityId EntityId
@@ -134,15 +174,21 @@ type PacketPlayerUseBed struct {
 	Block    BlockXyz
 }
 
+func (*PacketPlayerUseBed) IsPacket() {}
+
 type PacketEntityAnimation struct {
 	EntityId  EntityId
 	Animation EntityAnimation
 }
 
+func (*PacketEntityAnimation) IsPacket() {}
+
 type PacketEntityAction struct {
 	EntityId EntityId
 	Action   EntityAction
 }
+
+func (*PacketEntityAction) IsPacket() {}
 
 type PacketNamedEntitySpawn struct {
 	EntityId    EntityId
@@ -151,6 +197,8 @@ type PacketNamedEntitySpawn struct {
 	Rotation    LookBytes
 	CurrentItem ItemTypeId
 }
+
+func (*PacketNamedEntitySpawn) IsPacket() {}
 
 type PacketItemSpawn struct {
 	EntityId    EntityId
@@ -161,16 +209,22 @@ type PacketItemSpawn struct {
 	Orientation OrientationBytes
 }
 
+func (*PacketItemSpawn) IsPacket() {}
+
 type PacketItemCollect struct {
 	CollectedItem EntityId
 	Collector     EntityId
 }
+
+func (*PacketItemCollect) IsPacket() {}
 
 type PacketObjectSpawn struct {
 	EntityId EntityId
 	ObjType  ObjTypeId
 	Position AbsIntXyz
 }
+
+func (*PacketObjectSpawn) IsPacket() {}
 
 type PacketMobSpawn struct {
 	EntityId EntityId
@@ -179,6 +233,8 @@ type PacketMobSpawn struct {
 	Look     LookBytes
 }
 
+func (*PacketMobSpawn) IsPacket() {}
+
 type PacketPaintingSpawn struct {
 	EntityId EntityId
 	Title    string
@@ -186,34 +242,48 @@ type PacketPaintingSpawn struct {
 	SideFace SideFace
 }
 
+func (*PacketPaintingSpawn) IsPacket() {}
+
 type PacketExperienceOrb struct {
 	EntityId EntityId
 	Position AbsIntXyz
 	Count    int16
 }
 
+func (*PacketExperienceOrb) IsPacket() {}
+
 type PacketEntityVelocity struct {
 	EntityId EntityId
 	Velocity Velocity
 }
 
+func (*PacketEntityVelocity) IsPacket() {}
+
 type PacketEntityDestroy struct {
 	EntityId EntityId
 }
 
+func (*PacketEntityDestroy) IsPacket() {}
+
 type PacketEntity struct {
 	EntityId EntityId
 }
+
+func (*PacketEntity) IsPacket() {}
 
 type PacketEntityRelMove struct {
 	EntityId EntityId
 	Move     RelMove
 }
 
+func (*PacketEntityRelMove) IsPacket() {}
+
 type PacketEntityLook struct {
 	EntityId EntityId
 	Look     LookBytes
 }
+
+func (*PacketEntityLook) IsPacket() {}
 
 type PacketEntityLookAndRelMove struct {
 	EntityId EntityId
@@ -221,26 +291,36 @@ type PacketEntityLookAndRelMove struct {
 	Look     LookBytes
 }
 
+func (*PacketEntityLookAndRelMove) IsPacket() {}
+
 type PacketEntityTeleport struct {
 	EntityId EntityId
 	Position AbsIntXyz
 	Look     LookBytes
 }
 
+func (*PacketEntityTeleport) IsPacket() {}
+
 type PacketEntityStatus struct {
 	EntityId EntityId
 	Status   EntityStatus
 }
+
+func (*PacketEntityStatus) IsPacket() {}
 
 type PacketEntityAttach struct {
 	EntityId  EntityId
 	VehicleId EntityId
 }
 
+func (*PacketEntityAttach) IsPacket() {}
+
 type PacketEntityMetadata struct {
 	EntityId EntityId
 	Metadata EntityMetadataTable
 }
+
+func (*PacketEntityMetadata) IsPacket() {}
 
 type PacketEntityEffect struct {
 	EntityId EntityId
@@ -249,10 +329,14 @@ type PacketEntityEffect struct {
 	Duration int16
 }
 
+func (*PacketEntityEffect) IsPacket() {}
+
 type PacketEntityRemoveEffect struct {
 	EntityId EntityId
 	Effect   EntityEffect
 }
+
+func (*PacketEntityRemoveEffect) IsPacket() {}
 
 type PacketPlayerExperience struct {
 	Experience      int8
@@ -260,26 +344,36 @@ type PacketPlayerExperience struct {
 	TotalExperience int16
 }
 
+func (*PacketPlayerExperience) IsPacket() {}
+
 type PacketPreChunk struct {
 	ChunkLoc ChunkXz
 	Mode     ChunkLoadMode
 }
+
+func (*PacketPreChunk) IsPacket() {}
 
 type PacketMapChunk struct {
 	Corner BlockXyz
 	Data   ChunkData
 }
 
+func (*PacketMapChunk) IsPacket() {}
+
 type PacketMultiBlockChange struct {
 	ChunkLoc ChunkXz
 	Changes  MultiBlockChanges
 }
+
+func (*PacketMultiBlockChange) IsPacket() {}
 
 type PacketBlockChange struct {
 	Position  BlockXyz
 	TypeId    byte
 	BlockData byte
 }
+
+func (*PacketBlockChange) IsPacket() {}
 
 type PacketBlockAction struct {
 	// TODO Hopefully other packets referencing block locations (BlockXyz) will
@@ -290,11 +384,15 @@ type PacketBlockAction struct {
 	Value1, Value2 byte
 }
 
+func (*PacketBlockAction) IsPacket() {}
+
 type PacketExplosion struct {
 	Center AbsXyz
 	Radius float32
 	Blocks BlocksDxyz
 }
+
+func (*PacketExplosion) IsPacket() {}
 
 type PacketSoundEffect struct {
 	Effect SoundEffect
@@ -302,16 +400,22 @@ type PacketSoundEffect struct {
 	Data   int32
 }
 
+func (*PacketSoundEffect) IsPacket() {}
+
 type PacketState struct {
 	Reason   byte
 	GameType GameType
 }
+
+func (*PacketState) IsPacket() {}
 
 type PacketThunderbolt struct {
 	EntityId EntityId
 	Flag     bool
 	Position AbsIntXyz
 }
+
+func (*PacketThunderbolt) IsPacket() {}
 
 type PacketWindowOpen struct {
 	WindowId  WindowId
@@ -320,9 +424,13 @@ type PacketWindowOpen struct {
 	NumSlots  byte
 }
 
+func (*PacketWindowOpen) IsPacket() {}
+
 type PacketWindowClose struct {
 	WindowId WindowId
 }
+
+func (*PacketWindowClose) IsPacket() {}
 
 type PacketWindowClick struct {
 	WindowId     WindowId
@@ -333,16 +441,22 @@ type PacketWindowClick struct {
 	ExpectedSlot ItemSlot
 }
 
+func (*PacketWindowClick) IsPacket() {}
+
 type PacketWindowSetSlot struct {
 	WindowId WindowId
 	Slot     SlotId
 	NewSlot  ItemSlot
 }
 
+func (*PacketWindowSetSlot) IsPacket() {}
+
 type PacketWindowItems struct {
 	WindowId WindowId
 	Slots    ItemSlotSlice
 }
+
+func (*PacketWindowItems) IsPacket() {}
 
 type PacketWindowProgressBar struct {
 	WindowId WindowId
@@ -350,11 +464,15 @@ type PacketWindowProgressBar struct {
 	Value    PrgBarValue
 }
 
+func (*PacketWindowProgressBar) IsPacket() {}
+
 type PacketWindowTransaction struct {
 	WindowId WindowId
 	TxId     TxId
 	Accepted bool
 }
+
+func (*PacketWindowTransaction) IsPacket() {}
 
 type PacketCreativeInventoryAction struct {
 	Slot       SlotId
@@ -363,6 +481,8 @@ type PacketCreativeInventoryAction struct {
 	Count int16
 	Data  ItemData
 }
+
+func (*PacketCreativeInventoryAction) IsPacket() {}
 
 type PacketSignUpdate struct {
 	X     int32
@@ -374,16 +494,22 @@ type PacketSignUpdate struct {
 	Text4 string
 }
 
+func (*PacketSignUpdate) IsPacket() {}
+
 type PacketItemData struct {
 	ItemTypeId ItemTypeId
 	MapId      ItemData
 	MapData    MapData
 }
 
+func (*PacketItemData) IsPacket() {}
+
 type PacketIncrementStatistic struct {
 	StatisticId StatisticId
 	Amount      byte
 }
+
+func (*PacketIncrementStatistic) IsPacket() {}
 
 type PacketPlayerListItem struct {
 	Username string
@@ -391,11 +517,17 @@ type PacketPlayerListItem struct {
 	Ping     int16
 }
 
+func (*PacketPlayerListItem) IsPacket() {}
+
 type PacketServerListPing struct{}
+
+func (*PacketServerListPing) IsPacket() {}
 
 type PacketDisconnect struct {
 	Reason string
 }
+
+func (*PacketDisconnect) IsPacket() {}
 
 // Special packet field types.
 

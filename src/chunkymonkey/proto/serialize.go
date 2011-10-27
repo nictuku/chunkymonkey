@@ -66,7 +66,7 @@ type PacketSerializer struct {
 	scratch [32]byte
 }
 
-func (ps *PacketSerializer) ReadPacketExpect(reader io.Reader, fromClient bool, pktIds ...byte) (packet interface{}, err os.Error) {
+func (ps *PacketSerializer) ReadPacketExpect(reader io.Reader, fromClient bool, pktIds ...byte) (packet IPacket, err os.Error) {
 	// Read packet ID.
 	if _, err = io.ReadFull(reader, ps.scratch[0:1]); err != nil {
 		return
@@ -83,7 +83,7 @@ func (ps *PacketSerializer) ReadPacketExpect(reader io.Reader, fromClient bool, 
 	return nil, ErrorUnexpectedPacketId(pktId)
 }
 
-func (ps *PacketSerializer) ReadPacket(reader io.Reader, fromClient bool) (packet interface{}, err os.Error) {
+func (ps *PacketSerializer) ReadPacket(reader io.Reader, fromClient bool) (packet IPacket, err os.Error) {
 	// Read packet ID.
 	if _, err = io.ReadFull(reader, ps.scratch[0:1]); err != nil {
 		return
@@ -92,7 +92,7 @@ func (ps *PacketSerializer) ReadPacket(reader io.Reader, fromClient bool) (packe
 	return ps.readPacketCommon(reader, fromClient, ps.scratch[0])
 }
 
-func (ps *PacketSerializer) readPacketCommon(reader io.Reader, fromClient bool, id byte) (packet interface{}, err os.Error) {
+func (ps *PacketSerializer) readPacketCommon(reader io.Reader, fromClient bool, id byte) (packet IPacket, err os.Error) {
 	pktInfo := &pktIdInfo[ps.scratch[0]]
 	if !pktInfo.validPacket {
 		return nil, ErrorUnknownPacketType
@@ -113,7 +113,7 @@ func (ps *PacketSerializer) readPacketCommon(reader io.Reader, fromClient bool, 
 		return
 	}
 
-	return value.Interface(), nil
+	return value.Interface().(IPacket), nil
 }
 
 func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value) (err os.Error) {
@@ -233,7 +233,7 @@ func (ps *PacketSerializer) readData(reader io.Reader, value reflect.Value) (err
 	return
 }
 
-func (ps *PacketSerializer) WritePacket(writer io.Writer, packet interface{}) (err os.Error) {
+func (ps *PacketSerializer) WritePacket(writer io.Writer, packet IPacket) (err os.Error) {
 	value := reflect.Indirect(reflect.ValueOf(packet))
 	pktType := value.Type()
 
