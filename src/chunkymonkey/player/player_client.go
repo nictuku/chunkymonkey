@@ -1,7 +1,6 @@
 package player
 
 import (
-	"bytes"
 	"chunkymonkey/gamerules"
 	"chunkymonkey/proto"
 	. "chunkymonkey/types"
@@ -93,9 +92,9 @@ func (p *playerClient) GiveItem(item gamerules.Slot) {
 
 func (p *playerClient) EchoMessage(msg string) {
 	p.player.Enqueue(func(_ *Player) {
-		buf := new(bytes.Buffer)
-		proto.WriteChatMessage(buf, msg)
-		p.TransmitPacket(buf.Bytes())
+		p.player.SendPacket(&proto.PacketChatMessage{
+			Message: msg,
+		})
 	})
 }
 

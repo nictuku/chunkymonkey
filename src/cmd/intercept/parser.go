@@ -78,8 +78,8 @@ func (p *MessageParser) logPackets(reader io.Reader, logger *log.Logger, fromCli
 			switch pktTyped := pkt.(type) {
 			case *proto.PacketMapChunk:
 				p.printf(
-					"%T{Corner: %#v, Data: ChunkData{Size: %#v, Data: [%d]byte}}",
-					pktTyped.Corner, pktTyped.Data.Size, len(pktTyped.Data.Data))
+					"%T{Corner: %#v, Data: ChunkData{Size: %#v, %d blocks}}",
+					pktTyped.Corner, pktTyped.Data.Size, len(pktTyped.Data.Blocks))
 			default:
 				p.printf("%#v", pkt)
 			}

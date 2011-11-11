@@ -1,7 +1,6 @@
 package gamerules
 
 import (
-	"io"
 	"os"
 
 	"chunkymonkey/proto"
@@ -106,12 +105,25 @@ func (s *Slot) SetWindowSlot(windowSlot *proto.ItemSlot) {
 	}
 }
 
-func (s *Slot) SendUpdate(writer io.Writer, windowId WindowId, slotId SlotId) os.Error {
-	return proto.WriteWindowSetSlot(writer, windowId, slotId, s.ItemTypeId, s.Count, s.Data)
+func (s *Slot) UpdatePacket(windowId WindowId, slotIndex SlotId) *proto.PacketWindowSetSlot {
+	return &proto.PacketWindowSetSlot{
+		WindowId:  windowId,
+		SlotIndex: slotIndex,
+		Item: proto.ItemSlot{
+			ItemTypeId: s.ItemTypeId,
+			Count:      s.Count,
+			Data:       s.Data,
+		},
+	}
 }
 
-func (s *Slot) SendEquipmentUpdate(writer io.Writer, entityId EntityId, slotId SlotId) os.Error {
-	return proto.WriteEntityEquipment(writer, entityId, slotId, s.ItemTypeId, s.Data)
+func (s *Slot) EquipmentUpdatePacket(entityId EntityId, slotId SlotId) *proto.PacketEntityEquipment {
+	return &proto.PacketEntityEquipment{
+		EntityId:   entityId,
+		Slot:       slotId,
+		ItemTypeId: s.ItemTypeId,
+		Data:       s.Data,
+	}
 }
 
 func (s *Slot) setCount(count ItemCount) {

@@ -223,13 +223,11 @@ func Test_PacketMapChunk(t *testing.T) {
 		&PacketMapChunk{
 			Corner: BlockXyz{16, 0, 32},
 			Data: ChunkData{
-				Size: ChunkDataSize{0, 1, 2},
-				Data: []byte{
-					1, 2, 3, 4, 5, 6, // Block IDs.
-					1, 2, 3, // Block data.
-					4, 5, 6, // Block light.
-					7, 8, 9, // Sky light.
-				},
+				Size:       ChunkDataSize{0, 1, 2},
+				Blocks:     []byte{1, 2, 3, 4, 5, 6},
+				BlockData:  []byte{1, 2, 3},
+				BlockLight: []byte{4, 5, 6},
+				SkyLight:   []byte{7, 8, 9},
 			},
 		},
 		te.InOrder(

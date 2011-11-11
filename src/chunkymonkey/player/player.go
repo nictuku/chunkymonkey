@@ -1,7 +1,6 @@
 package player
 
 import (
-	"bytes"
 	"expvar"
 	"flag"
 	"fmt"
@@ -613,11 +612,19 @@ func (player *Player) transmitLoop() {
 	}
 }
 
+// TransmitPacket sends the given bytes to the player's client. This may be
+// called from any goroutine.
 func (player *Player) TransmitPacket(packet []byte) {
 	if packet == nil {
 		return // skip empty packets
 	}
 	player.txQueue <- packet
+}
+
+// SendPacket sends the given packet to the player's client. This must be
+// called from the player main loop.
+func (player *Player) SendPacket(packet proto.IPacket) {
+	player.TransmitPacket(player.txPktSerial.SerializePackets(packet))
 }
 
 // pingNew starts a new "keep-alive" ping.
@@ -831,9 +838,7 @@ func (player *Player) inventoryCursorUpdate(block *BlockXyz, cursor *gamerules.S
 	}
 
 	player.cursor = *cursor
-	buf := new(bytes.Buffer)
-	player.cursor.SendUpdate(buf, WindowIdCursor, SlotIdCursor)
-	player.TransmitPacket(buf.Bytes())
+	player.SendPacket(player.cursor.UpdatePacket(WindowIdCursor, SlotIdCursor))
 }
 
 func (player *Player) inventoryTxState(block *BlockXyz, txId TxId, accepted bool) {
@@ -841,9 +846,11 @@ func (player *Player) inventoryTxState(block *BlockXyz, txId TxId, accepted bool
 		return
 	}
 
-	buf := new(bytes.Buffer)
-	proto.WriteWindowTransaction(buf, player.curWindow.WindowId(), txId, accepted)
-	player.TransmitPacket(buf.Bytes())
+	player.SendPacket(&proto.PacketWindowTransaction{
+		WindowId: player.curWindow.WindowId(),
+		TxId:     txId,
+		Accepted: accepted,
+	})
 }
 
 func (player *Player) inventoryUnsubscribed(block *BlockXyz) {
@@ -913,19 +920,18 @@ func (player *Player) Enqueue(f func(*Player)) {
 }
 
 func (player *Player) sendChatMessage(message string, sendToSelf bool) {
-	buf := new(bytes.Buffer)
-	proto.WriteChatMessage(buf, message)
-
-	packet := buf.Bytes()
+	data := player.txPktSerial.SerializePackets(&proto.PacketChatMessage{
+		Message: message,
+	})
 
 	if sendToSelf {
-		player.TransmitPacket(packet)
+		player.TransmitPacket(data)
 	}
 
 	player.chunkSubs.curShard.ReqMulticastPlayers(
 		player.chunkSubs.curChunkLoc,
 		player.EntityId,
-		packet,
+		data,
 	)
 }
 
@@ -957,8 +963,10 @@ func (player *Player) setPositionLook(pos AbsXyz, look LookDegrees) {
 	} else {
 		// Notify the player about their new position
 		// Tell the player's client about their new position
-		buf := new(bytes.Buffer)
-		proto.WritePlayerPosition(buf, &pos, StanceNormal, true)
-		player.TransmitPacket(buf.Bytes())
+		player.SendPacket(&proto.PacketPlayerPosition{
+			X: pos.X, Y: pos.Y, Z: pos.Z,
+			Stance:   pos.Y + player.height,
+			OnGround: true,
+		})
 	}
 }

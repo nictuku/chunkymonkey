@@ -1,6 +1,7 @@
 package shardserver
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"rand"
@@ -643,8 +644,10 @@ func (chunk *Chunk) reqUnsubscribeChunk(entityId EntityId, sendPacket bool) {
 
 		if sendPacket {
 			buf := chunk.shard.buf()
-			proto.WritePreChunk(buf, &chunk.loc, ChunkUnload)
-			// TODO send PacketEntityDestroy packets for spawns in this chunk.
+			chunk.shard.pktSerial.WritePacketsBuffer(buf, &proto.PacketPreChunk{
+				ChunkLoc: chunk.loc,
+				Mode:     ChunkUnload,
+			})
 			player.TransmitPacket(buf.Bytes())
 		}
 	}
@@ -712,7 +715,7 @@ func (chunk *Chunk) reqRemovePlayerData(entityId EntityId, isDisconnect bool) {
 
 	if isDisconnect {
 		buf := chunk.shard.buf()
-		proto.WriteEntityDestroy(buf, entityId)
+		chunk.shard.pktSerial.WritePacketsBuffer(buf, &proto.PacketEntityDestroy{entityId})
 		chunk.reqMulticastPlayers(entityId, buf.Bytes())
 	}
 }
@@ -775,8 +778,19 @@ func (chunk *Chunk) reqSetPlayerLook(entityId EntityId, look LookBytes) {
 
 func (chunk *Chunk) chunkPacket() []byte {
 	if chunk.cachedPacket == nil {
-		buf := chunk.shard.buf()
-		proto.WriteMapChunk(buf, &chunk.loc, chunk.blocks, chunk.blockData, chunk.blockLight, chunk.skyLight)
+		// Don't use the shard shared buffer here, as the underlying array gets
+		// used for other things.
+		buf := bytes.NewBuffer(make([]byte, 0, 4096))
+		chunk.shard.pktSerial.WritePacketsBuffer(buf, &proto.PacketMapChunk{
+			Corner: BlockXyz{},
+			Data: proto.ChunkData{
+				Size:       proto.ChunkDataSize{ChunkSizeH - 1, ChunkSizeY - 1, ChunkSizeH - 1},
+				Blocks:     chunk.blocks,
+				BlockData:  chunk.blockData,
+				BlockLight: chunk.blockLight,
+				SkyLight:   chunk.skyLight,
+			},
+		})
 		chunk.cachedPacket = buf.Bytes()
 	}
 

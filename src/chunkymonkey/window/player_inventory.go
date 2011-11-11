@@ -1,7 +1,6 @@
 package window
 
 import (
-	"io"
 	"fmt"
 	"os"
 
@@ -99,25 +98,6 @@ func (w *PlayerInventory) HeldItem() (slot gamerules.Slot, slotId SlotId) {
 // if `into` cannot take any items of that type.
 func (w *PlayerInventory) TakeOneHeldItem(into *gamerules.Slot) {
 	w.holding.TakeOneItem(w.holdingIndex, into)
-}
-
-// Writes packets for other players to see the equipped items.
-func (w *PlayerInventory) SendFullEquipmentUpdate(writer io.Writer) (err os.Error) {
-	slot, _ := w.HeldItem()
-	err = slot.SendEquipmentUpdate(writer, w.entityId, 0)
-	if err != nil {
-		return
-	}
-
-	numArmor := w.armor.NumSlots()
-	for i := SlotId(0); i < numArmor; i++ {
-		slot := w.armor.Slot(i)
-		err = slot.SendEquipmentUpdate(writer, w.entityId, SlotId(i+1))
-		if err != nil {
-			return
-		}
-	}
-	return
 }
 
 // PutItem attempts to put the item stack into the player's inventory. The item

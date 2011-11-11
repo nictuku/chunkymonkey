@@ -2,8 +2,6 @@
 package window
 
 import (
-	"bytes"
-
 	"chunkymonkey/gamerules"
 	"chunkymonkey/proto"
 	. "chunkymonkey/types"
@@ -31,7 +29,7 @@ type IWindow interface {
 // updates from changes to inventories viewed inside a window. Typically
 // *player.Player implements this.
 type IWindowViewer interface {
-	TransmitPacket(packet []byte)
+	SendPacket(packet proto.IPacket)
 }
 
 // inventoryView provides a single mapping between a window view onto an
@@ -61,16 +59,16 @@ func (iv *inventoryView) Finalize() {
 
 // Implementing IInventorySubscriber - relays inventory changes to the viewer
 // of the window.
-func (iv *inventoryView) SlotUpdate(slot *gamerules.Slot, slotId SlotId) {
-	buf := new(bytes.Buffer)
-	slot.SendUpdate(buf, iv.window.windowId, iv.startSlot+slotId)
-	iv.window.viewer.TransmitPacket(buf.Bytes())
+func (iv *inventoryView) SlotUpdate(slot *gamerules.Slot, slotIndex SlotId) {
+	iv.window.viewer.SendPacket(slot.UpdatePacket(iv.window.windowId, iv.startSlot+slotIndex))
 }
 
 func (iv *inventoryView) ProgressUpdate(prgBarId PrgBarId, value PrgBarValue) {
-	buf := new(bytes.Buffer)
-	proto.WriteWindowProgressBar(buf, iv.window.windowId, prgBarId, value)
-	iv.window.viewer.TransmitPacket(buf.Bytes())
+	iv.window.viewer.SendPacket(&proto.PacketWindowProgressBar{
+		WindowId: iv.window.windowId,
+		PrgBarId: prgBarId,
+		Value:    value,
+	})
 }
 
 // Window represents the common base behaviour of an inventory window. It acts
@@ -123,9 +121,7 @@ func (w *Window) Finalize(sendClosePacket bool) {
 		w.views[index].Finalize()
 	}
 	if sendClosePacket {
-		buf := new(bytes.Buffer)
-		proto.WriteWindowClose(buf, w.windowId)
-		w.viewer.TransmitPacket(buf.Bytes())
+		w.viewer.SendPacket(&proto.PacketWindowClose{w.windowId})
 	}
 }
 

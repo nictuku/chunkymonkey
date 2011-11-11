@@ -463,9 +463,9 @@ type PacketWindowClick struct {
 func (*PacketWindowClick) IsPacket() {}
 
 type PacketWindowSetSlot struct {
-	WindowId WindowId
-	Slot     SlotId
-	NewSlot  ItemSlot
+	WindowId  WindowId
+	SlotIndex SlotId
+	Item      ItemSlot
 }
 
 func (*PacketWindowSetSlot) IsPacket() {}
@@ -651,8 +651,11 @@ func (slots *ItemSlotSlice) MinecraftMarshal(writer io.Writer, ps *PacketSeriali
 
 // ChunkData implements IMarshaler.
 type ChunkData struct {
-	Size ChunkDataSize
-	Data []byte
+	Size       ChunkDataSize
+	Blocks     []byte
+	BlockData  []byte
+	BlockLight []byte
+	SkyLight   []byte
 }
 
 // ChunkDataSize contains the dimensions of the data represented inside ChunkData.
@@ -682,14 +685,20 @@ func (cd *ChunkData) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) 
 	defer zReader.Close()
 
 	numBlocks := (int(cd.Size.X) + 1) * (int(cd.Size.Y) + 1) * (int(cd.Size.Z) + 1)
-	expectedNumDataBytes := numBlocks + 3*(numBlocks>>1)
-	cd.Data = make([]byte, expectedNumDataBytes)
-	if _, err = io.ReadFull(zReader, cd.Data); err != nil {
+	numNibbles := numBlocks >> 1
+	expectedNumDataBytes := numBlocks + 3*numNibbles
+	data := make([]byte, expectedNumDataBytes)
+	if _, err = io.ReadFull(zReader, data); err != nil {
 		return
 	}
 
+	cd.Blocks = data[0:numBlocks]
+	cd.BlockData = data[numBlocks : numBlocks+numNibbles]
+	cd.BlockLight = data[numBlocks+numNibbles : numBlocks+numNibbles*2]
+	cd.SkyLight = data[numBlocks+numNibbles*2 : numBlocks+numNibbles*3]
+
 	// Check that we're at the end of the compressed data to be sure of being in
-	// sync with packet stream..
+	// sync with packet stream.
 	n, err := io.ReadFull(zReader, dump[:])
 	if err == os.EOF {
 		err = nil
@@ -713,22 +722,30 @@ func (cd *ChunkData) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (e
 	}
 
 	numBlocks := (int(cd.Size.X) + 1) * (int(cd.Size.Y) + 1) * (int(cd.Size.Z) + 1)
-	expectedNumDataBytes := numBlocks + 3*(numBlocks>>1)
-	if len(cd.Data) != expectedNumDataBytes {
+	numNibbles := numBlocks >> 1
+	if len(cd.Blocks) != numBlocks || len(cd.BlockData) != numNibbles || len(cd.BlockLight) != numNibbles || len(cd.SkyLight) != numNibbles {
 		return ErrorBadChunkDataSize
 	}
 
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
-
 	zWriter, err := zlib.NewWriter(buf)
 	if err != nil {
-		return
+		// The zWriter should not fail, as the underlying writer does not.
+		panic(err)
 	}
-	_, err = zWriter.Write(cd.Data)
+	dataParts := [][]byte{
+		cd.Blocks,
+		cd.BlockData,
+		cd.BlockLight,
+		cd.SkyLight,
+	}
+	for _, data := range dataParts {
+		_, err := zWriter.Write(data)
+		if err != nil {
+			panic(err)
+		}
+	}
 	zWriter.Close()
-	if err != nil {
-		return
-	}
 
 	compressedBytes := buf.Bytes()
 	if err = ps.writeUint32(writer, uint32(len(compressedBytes))); err != nil {
