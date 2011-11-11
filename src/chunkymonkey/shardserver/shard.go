@@ -1,6 +1,7 @@
 package shardserver
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"chunkymonkey/chunkstore"
 	"chunkymonkey/entity"
 	"chunkymonkey/gamerules"
+	"chunkymonkey/proto"
 	. "chunkymonkey/types"
 )
 
@@ -25,6 +27,10 @@ func chunkXzToChunkIndex(locDelta *ChunkXz) int {
 // ChunkShard represents a square shard of chunks that share a master
 // goroutine.
 type ChunkShard struct {
+	// Shared serialization fields for chunks to use.
+	pktSerial proto.PacketSerializer
+	buffer    *bytes.Buffer
+
 	shardConnecter   gamerules.IShardConnecter
 	chunkStore       chunkstore.IChunkStore
 	entityMgr        *entity.EntityManager
@@ -45,6 +51,7 @@ type ChunkShard struct {
 
 func NewChunkShard(shardConnecter gamerules.IShardConnecter, chunkStore chunkstore.IChunkStore, entityMgr *entity.EntityManager, loc ShardXz) (shard *ChunkShard) {
 	shard = &ChunkShard{
+		buffer:           new(bytes.Buffer),
 		shardConnecter:   shardConnecter,
 		chunkStore:       chunkStore,
 		entityMgr:        entityMgr,
@@ -287,6 +294,12 @@ func (shard *ChunkShard) loadChunk(loc ChunkXz, locDelta ChunkXz) *Chunk {
 	chunk := newChunkFromReader(chunkReader, shard)
 
 	return chunk
+}
+
+// buf clears the shard's buffer and returns it.
+func (shard *ChunkShard) buf() *bytes.Buffer {
+	shard.buffer.Reset()
+	return shard.buffer
 }
 
 // enqueueAllChunks runs a given function on all loaded chunks in the shard.

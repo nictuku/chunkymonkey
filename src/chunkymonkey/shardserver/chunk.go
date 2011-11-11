@@ -1,7 +1,6 @@
 package shardserver
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"rand"
@@ -118,9 +117,13 @@ func (chunk *Chunk) setBlock(blockLoc *BlockXyz, subLoc *SubChunkXyz, index Bloc
 	chunk.tileEntities[index] = nil, false
 
 	// Tell players that the block changed.
-	packet := new(bytes.Buffer)
-	proto.WriteBlockChange(packet, blockLoc, blockType, blockData)
-	chunk.reqMulticastPlayers(-1, packet.Bytes())
+	buf := chunk.shard.buf()
+	chunk.shard.pktSerial.WritePacketsBuffer(buf, &proto.PacketBlockChange{
+		Block:     *blockLoc,
+		TypeId:    blockType,
+		BlockData: blockData,
+	})
+	chunk.reqMulticastPlayers(-1, buf.Bytes())
 
 	return
 }
@@ -164,21 +167,20 @@ func (chunk *Chunk) AddEntity(s gamerules.INonPlayerEntity) {
 	chunk.entities[newEntityId] = s
 
 	// Spawn new item/mob for players.
-	buf := &bytes.Buffer{}
-	s.SendSpawn(buf)
-	chunk.reqMulticastPlayers(-1, buf.Bytes())
+	data := chunk.shard.pktSerial.SerializePackets(s.SpawnPackets(nil)...)
+	chunk.reqMulticastPlayers(-1, data)
 
 	chunk.storeDirty = true
 }
 
 func (chunk *Chunk) removeEntity(s gamerules.INonPlayerEntity) {
-	e := s.GetEntityId()
-	chunk.shard.entityMgr.RemoveEntityById(e)
-	chunk.entities[e] = nil, false
+	entityId := s.GetEntityId()
+	chunk.shard.entityMgr.RemoveEntityById(entityId)
+	chunk.entities[entityId] = nil, false
+
 	// Tell all subscribers that the spawn's entity is destroyed.
-	buf := new(bytes.Buffer)
-	proto.WriteEntityDestroy(buf, e)
-	chunk.reqMulticastPlayers(-1, buf.Bytes())
+	data := chunk.shard.pktSerial.SerializePackets(&proto.PacketEntityDestroy{entityId})
+	chunk.reqMulticastPlayers(-1, data)
 
 	chunk.storeDirty = true
 }
@@ -344,15 +346,18 @@ func (chunk *Chunk) reqTakeItem(player gamerules.IPlayerClient, entityId EntityI
 
 			// Tell all subscribers to animate the item flying at the
 			// player.
-			buf := new(bytes.Buffer)
-			proto.WriteItemCollect(buf, entityId, player.GetEntityId())
+			buf := chunk.shard.buf()
+			chunk.shard.pktSerial.WritePacketsBuffer(buf, &proto.PacketItemCollect{
+				CollectedItem: entityId,
+				Collector:     player.GetEntityId(),
+			})
 			chunk.reqMulticastPlayers(-1, buf.Bytes())
 			chunk.removeEntity(item)
 		}
 	}
 }
 
-func (chunk *Chunk) reqDropItem(player gamerules.IPlayerClient, content *gamerules.Slot, position *AbsXyz, velocity *AbsVelocity, pickupImmunity Ticks) {
+func (chunk *Chunk) reqDropItem(player gamerules.IPlayerClient, content *gamerules.Slot, position AbsXyz, velocity AbsVelocity, pickupImmunity Ticks) {
 	spawnedItem := gamerules.NewItem(
 		content.ItemTypeId,
 		content.Count,
@@ -589,33 +594,38 @@ func (chunk *Chunk) reqSubscribeChunk(entityId EntityId, player gamerules.IPlaye
 
 	chunk.subscribers[entityId] = player
 
-	buf := new(bytes.Buffer)
-	proto.WritePreChunk(buf, &chunk.loc, ChunkInit)
+	// Transmit the chunk data to the new player.
+	buf := chunk.shard.buf()
+	chunk.shard.pktSerial.WritePacketsBuffer(buf, &proto.PacketPreChunk{
+		ChunkLoc: chunk.loc,
+		Mode:     ChunkInit,
+	})
 	player.TransmitPacket(buf.Bytes())
-
 	player.TransmitPacket(chunk.chunkPacket())
 	if notify {
 		player.NotifyChunkLoad()
 	}
 
-	// Send spawns packets for all entities in the chunk.
+	// Send spawn packets for all entities in the chunk to the player.
 	if len(chunk.entities) > 0 {
-		buf := new(bytes.Buffer)
-		for _, e := range chunk.entities {
-			e.SendSpawn(buf)
+		buf.Reset()
+		for _, entity := range chunk.entities {
+			pkts := entity.SpawnPackets(nil)
+			chunk.shard.pktSerial.WritePacketsBuffer(buf, pkts...)
 		}
 		player.TransmitPacket(buf.Bytes())
 	}
 
 	// Spawn existing players for new player.
 	if len(chunk.playersData) > 0 {
-		playersPacket := new(bytes.Buffer)
+		buf.Reset()
 		for _, existing := range chunk.playersData {
 			if existing.entityId != entityId {
-				existing.sendSpawn(playersPacket)
+				pkts := existing.SpawnPackets(nil)
+				chunk.shard.pktSerial.WritePacketsBuffer(buf, pkts...)
 			}
 		}
-		player.TransmitPacket(playersPacket.Bytes())
+		player.TransmitPacket(buf.Bytes())
 	}
 }
 
@@ -632,7 +642,7 @@ func (chunk *Chunk) reqUnsubscribeChunk(entityId EntityId, sendPacket bool) {
 		}
 
 		if sendPacket {
-			buf := new(bytes.Buffer)
+			buf := chunk.shard.buf()
 			proto.WritePreChunk(buf, &chunk.loc, ChunkUnload)
 			// TODO send PacketEntityDestroy packets for spawns in this chunk.
 			player.TransmitPacket(buf.Bytes())
@@ -691,16 +701,17 @@ func (chunk *Chunk) reqAddPlayerData(entityId EntityId, name string, pos AbsXyz,
 	chunk.playersData[entityId] = newPlayerData
 
 	// Spawn new player for existing players.
-	newPlayerPacket := new(bytes.Buffer)
-	newPlayerData.sendSpawn(newPlayerPacket)
-	chunk.reqMulticastPlayers(entityId, newPlayerPacket.Bytes())
+	buf := chunk.shard.buf()
+	pkts := newPlayerData.SpawnPackets(nil)
+	chunk.shard.pktSerial.WritePacketsBuffer(buf, pkts...)
+	chunk.reqMulticastPlayers(entityId, buf.Bytes())
 }
 
 func (chunk *Chunk) reqRemovePlayerData(entityId EntityId, isDisconnect bool) {
 	chunk.playersData[entityId] = nil, false
 
 	if isDisconnect {
-		buf := new(bytes.Buffer)
+		buf := chunk.shard.buf()
 		proto.WriteEntityDestroy(buf, entityId)
 		chunk.reqMulticastPlayers(entityId, buf.Bytes())
 	}
@@ -720,8 +731,8 @@ func (chunk *Chunk) reqSetPlayerPosition(entityId EntityId, pos AbsXyz) {
 	data.position = pos
 
 	// Update subscribers.
-	buf := new(bytes.Buffer)
-	data.sendPositionLook(buf)
+	buf := chunk.shard.buf()
+	chunk.shard.pktSerial.WritePacketsBuffer(buf, data.UpdatePackets(nil)...)
 	chunk.reqMulticastPlayers(entityId, buf.Bytes())
 
 	player, ok := chunk.subscribers[entityId]
@@ -756,14 +767,15 @@ func (chunk *Chunk) reqSetPlayerLook(entityId EntityId, look LookBytes) {
 	data.look = look
 
 	// Update subscribers.
-	buf := new(bytes.Buffer)
-	data.sendPositionLook(buf)
+	buf := chunk.shard.buf()
+	pkts := data.UpdatePackets(nil)
+	chunk.shard.pktSerial.WritePacketsBuffer(buf, pkts...)
 	chunk.reqMulticastPlayers(entityId, buf.Bytes())
 }
 
 func (chunk *Chunk) chunkPacket() []byte {
 	if chunk.cachedPacket == nil {
-		buf := new(bytes.Buffer)
+		buf := chunk.shard.buf()
 		proto.WriteMapChunk(buf, &chunk.loc, chunk.blocks, chunk.blockData, chunk.blockLight, chunk.skyLight)
 		chunk.cachedPacket = buf.Bytes()
 	}
@@ -772,11 +784,11 @@ func (chunk *Chunk) chunkPacket() []byte {
 }
 
 func (chunk *Chunk) sendUpdate() {
-	buf := &bytes.Buffer{}
-	for _, e := range chunk.entities {
-		e.SendUpdate(buf)
+	for _, entity := range chunk.entities {
+		pkts := entity.UpdatePackets(nil)
+		chunk.shard.pktSerial.WritePacketsBuffer(chunk.shard.buffer, pkts...)
 	}
-	chunk.reqMulticastPlayers(-1, buf.Bytes())
+	chunk.reqMulticastPlayers(-1, chunk.shard.buffer.Bytes())
 }
 
 func (chunk *Chunk) isSameChunk(otherChunkLoc *ChunkXz) bool {

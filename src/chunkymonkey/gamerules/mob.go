@@ -2,7 +2,6 @@ package gamerules
 
 import (
 	"expvar"
-	"io"
 	"os"
 
 	"chunkymonkey/nbtutil"
@@ -104,8 +103,8 @@ func (mob *Mob) Tick(blockQuerier physics.IBlockQuerier) (leftBlock bool) {
 	return mob.PointObject.Tick(blockQuerier)
 }
 
-func (mob *Mob) FormatMetadata() []proto.EntityMetadata {
-	x := make([]proto.EntityMetadata, len(mob.metadata))
+func (mob *Mob) FormatMetadata() proto.EntityMetadataTable {
+	x := make(proto.EntityMetadataTable, len(mob.metadata))
 	i := 0
 	for k, v := range mob.metadata {
 		x[i] = proto.EntityMetadata{0, k, v}
@@ -114,36 +113,28 @@ func (mob *Mob) FormatMetadata() []proto.EntityMetadata {
 	return x
 }
 
-func (mob *Mob) SendUpdate(writer io.Writer) (err os.Error) {
-	if err = proto.WriteEntity(writer, mob.EntityId); err != nil {
-		return
-	}
-
-	err = mob.PointObject.SendUpdate(writer, mob.EntityId, mob.look.ToLookBytes())
-
-	return
+func (mob *Mob) UpdatePackets(pkts []proto.IPacket) []proto.IPacket {
+	pkts = append(pkts, &proto.PacketEntity{mob.EntityId})
+	pkts = mob.PointObject.UpdatePackets(pkts, mob.EntityId, mob.look.ToLookBytes())
+	return pkts
 }
 
-func (mob *Mob) SendSpawn(writer io.Writer) (err os.Error) {
-	err = proto.WriteEntitySpawn(
-		writer,
-		mob.EntityId,
-		mob.mobType,
-		&mob.PointObject.LastSentPosition,
-		mob.look.ToLookBytes(),
-		mob.FormatMetadata())
-	if err != nil {
-		return
-	}
-	err = proto.WriteEntityVelocity(
-		writer,
-		mob.EntityId,
-		&mob.PointObject.LastSentVelocity)
-	if err != nil {
-		return
-	}
+func (mob *Mob) SpawnPackets(pkts []proto.IPacket) []proto.IPacket {
+	pkts = append(pkts,
+		&proto.PacketMobSpawn{
+			EntityId: mob.EntityId,
+			MobType:  mob.mobType,
+			Position: mob.PointObject.LastSentPosition,
+			Look:     mob.look.ToLookBytes(),
+			Metadata: mob.FormatMetadata(),
+		},
+		&proto.PacketEntityVelocity{
+			EntityId: mob.EntityId,
+			Velocity: mob.PointObject.LastSentVelocity,
+		},
+	)
 
-	return
+	return pkts
 }
 
 // Evil mobs.

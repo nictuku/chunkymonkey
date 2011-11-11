@@ -1,7 +1,6 @@
 package gamerules
 
 import (
-	"io"
 	"os"
 
 	"chunkymonkey/physics"
@@ -22,7 +21,7 @@ func NewBlankItem() INonPlayerEntity {
 	return new(Item)
 }
 
-func NewItem(itemTypeId ItemTypeId, count ItemCount, data ItemData, position *AbsXyz, velocity *AbsVelocity, pickupImmunity Ticks) (item *Item) {
+func NewItem(itemTypeId ItemTypeId, count ItemCount, data ItemData, position AbsXyz, velocity AbsVelocity, pickupImmunity Ticks) (item *Item) {
 	item = &Item{
 		Slot: Slot{
 			ItemTypeId: itemTypeId,
@@ -79,28 +78,29 @@ func (item *Item) GetSlot() *Slot {
 	return &item.Slot
 }
 
-func (item *Item) SendSpawn(writer io.Writer) (err os.Error) {
-	err = proto.WriteItemSpawn(
-		writer, item.EntityId, item.ItemTypeId, item.Slot.Count, item.Slot.Data,
-		&item.PointObject.LastSentPosition, &item.orientation)
-	if err != nil {
-		return
-	}
-
-	err = proto.WriteEntityVelocity(writer, item.EntityId, &item.PointObject.LastSentVelocity)
-	if err != nil {
-		return
-	}
-
-	return
+func (item *Item) SpawnPackets(pkts []proto.IPacket) []proto.IPacket {
+	return append(pkts,
+		&proto.PacketItemSpawn{
+			EntityId:    item.EntityId,
+			ItemTypeId:  item.ItemTypeId,
+			Count:       item.Slot.Count,
+			Data:        item.Slot.Data,
+			Position:    item.PointObject.LastSentPosition,
+			Orientation: item.orientation,
+		},
+		&proto.PacketEntityVelocity{
+			EntityId: item.EntityId,
+			Velocity: item.PointObject.LastSentVelocity,
+		},
+	)
 }
 
-func (item *Item) SendUpdate(writer io.Writer) (err os.Error) {
-	if err = proto.WriteEntity(writer, item.EntityId); err != nil {
-		return
-	}
+func (item *Item) UpdatePackets(pkts []proto.IPacket) []proto.IPacket {
+	pkts = append(pkts, &proto.PacketEntity{
+		EntityId: item.EntityId,
+	})
 
-	err = item.PointObject.SendUpdate(writer, item.EntityId, &LookBytes{0, 0})
+	pkts = item.PointObject.UpdatePackets(pkts, item.EntityId, LookBytes{})
 
-	return
+	return pkts
 }

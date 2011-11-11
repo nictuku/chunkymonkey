@@ -206,9 +206,7 @@ func Test_PacketEntityMetadata(t *testing.T) {
 		&PacketEntityMetadata{
 			EntityId: 5,
 			Metadata: EntityMetadataTable{
-				Items: []EntityMetadata{
-					EntityMetadata{0, 0, byte(5)},
-				},
+				EntityMetadata{0, 0, byte(5)},
 			},
 		},
 		te.LiteralString("\x28"+
@@ -427,9 +425,7 @@ func Benchmark_New_WritePacketEntityMetadata(b *testing.B) {
 	benchmarkPacket(b, &PacketEntityMetadata{
 		EntityId: 5,
 		Metadata: EntityMetadataTable{
-			Items: []EntityMetadata{
-				EntityMetadata{0, 0, byte(5)},
-			},
+			EntityMetadata{0, 0, byte(5)},
 		},
 	})
 }

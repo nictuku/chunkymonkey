@@ -1,9 +1,6 @@
 package shardserver
 
 import (
-	"io"
-	"os"
-
 	"chunkymonkey/gamerules"
 	"chunkymonkey/proto"
 	. "chunkymonkey/types"
@@ -27,23 +24,23 @@ type playerData struct {
 	// TODO Armor data.
 }
 
-func (player *playerData) sendSpawn(writer io.Writer) os.Error {
-	return proto.WriteNamedEntitySpawn(
-		writer,
-		player.entityId, player.name,
-		player.position.ToAbsIntXyz(),
-		&player.look,
-		player.heldItemId,
-	)
+func (player *playerData) SpawnPackets(pkts []proto.IPacket) []proto.IPacket {
+	return append(pkts, &proto.PacketNamedEntitySpawn{
+		EntityId:    player.entityId,
+		Username:    player.name,
+		Position:    *player.position.ToAbsIntXyz(),
+		Rotation:    player.look,
+		CurrentItem: player.heldItemId,
+	})
 	// TODO Armor packet(s).
 }
 
-func (player *playerData) sendPositionLook(writer io.Writer) os.Error {
-	return proto.WriteEntityTeleport(
-		writer,
-		player.entityId,
-		player.position.ToAbsIntXyz(),
-		&player.look)
+func (player *playerData) UpdatePackets(pkts []proto.IPacket) []proto.IPacket {
+	return append(pkts, &proto.PacketEntityTeleport{
+		EntityId: player.entityId,
+		Position: *player.position.ToAbsIntXyz(),
+		Look:     player.look,
+	})
 }
 
 func (player *playerData) OverlapsItem(item *gamerules.Item) bool {

@@ -2,31 +2,32 @@ package gamerules
 
 import (
 	"bytes"
-	"os"
 	"testing"
 
+	"chunkymonkey/proto"
 	"chunkymonkey/types"
 	te "testencoding"
 )
 
 type testCase struct {
 	name   string
-	result func(writer *bytes.Buffer) (err os.Error)
+	result func(buf *bytes.Buffer)
 	want   te.IBytesMatcher
 }
 
 func TestMobSpawn(t *testing.T) {
+	var pktSerial proto.PacketSerializer
 	tests := []testCase{
 		{
 			"pig",
-			func(writer *bytes.Buffer) os.Error {
+			func(buf *bytes.Buffer) {
 				m := NewPig().(*Pig)
-				m.PointObject.Init(&types.AbsXyz{11, 70, -172}, &types.AbsVelocity{0, 0, 0})
+				m.PointObject.Init(types.AbsXyz{11, 70, -172}, types.AbsVelocity{0, 0, 0})
 				m.Mob.EntityId = 0x1234
 				m.SetBurning(true)
 				m.SetBurning(false)
 				m.SetLook(types.LookDegrees{10, 20})
-				return m.SendSpawn(writer)
+				pktSerial.WritePacketsBuffer(buf, m.SpawnPackets(nil)...)
 			},
 			te.InOrder(
 				// packetIdEntitySpawn
@@ -47,15 +48,15 @@ func TestMobSpawn(t *testing.T) {
 		},
 		{
 			"creeper",
-			func(writer *bytes.Buffer) os.Error {
+			func(buf *bytes.Buffer) {
 				// Bogus position, changing below.
 				m := NewCreeper().(*Creeper)
-				m.PointObject.Init(&types.AbsXyz{11, 70, -172}, &types.AbsVelocity{})
+				m.PointObject.Init(types.AbsXyz{11, 70, -172}, types.AbsVelocity{})
 				m.Mob.EntityId = 0x5678
 				m.CreeperSetBlueAura()
 				m.SetBurning(true)
 				m.SetLook(types.LookDegrees{0, 199})
-				return m.SendSpawn(writer)
+				pktSerial.WritePacketsBuffer(buf, m.SpawnPackets(nil)...)
 			},
 			te.InOrder(
 				// packetIdEntitySpawn
@@ -78,13 +79,9 @@ func TestMobSpawn(t *testing.T) {
 	}
 	for _, x := range tests {
 		buf := new(bytes.Buffer)
-		want, err := x.want, x.result(buf)
-		if err != nil {
-			t.Errorf("Error when writing in test %s: %v", x.name, err)
-			continue
-		}
+		x.result(buf)
 		result := buf.Bytes()
-		if err = te.Matches(want, result); err != nil {
+		if err := te.Matches(x.want, result); err != nil {
 			t.Errorf("Resulting raw data mismatch for %s spawn: %v\nGot bytes: %x", x.name, err, result)
 		}
 	}

@@ -18,8 +18,8 @@ func spawnItemInBlock(chunk IChunkBlock, blockLoc BlockXyz, itemTypeId ItemTypeI
 	chunk.AddEntity(
 		NewItem(
 			itemTypeId, count, data,
-			position,
-			&AbsVelocity{0, 0, 0},
+			*position,
+			AbsVelocity{},
 			0,
 		),
 	)

@@ -46,7 +46,7 @@ func (sub *chunkSubscriptions) Init(player *Player) {
 		sub.curChunkLoc,
 		player.name,
 		player.position,
-		*player.look.ToLookBytes(),
+		player.look.ToLookBytes(),
 		player.getHeldItemTypeId(),
 	)
 }
@@ -190,7 +190,7 @@ func (sub *chunkSubscriptions) moveToChunk(newChunkLoc ChunkXz, newLoc *AbsXyz) 
 			newChunkLoc,
 			sub.player.name,
 			sub.player.position,
-			*sub.player.look.ToLookBytes(),
+			sub.player.look.ToLookBytes(),
 			sub.player.getHeldItemTypeId(),
 		)
 	}

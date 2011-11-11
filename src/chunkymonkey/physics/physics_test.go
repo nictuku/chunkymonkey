@@ -160,7 +160,7 @@ func (test *test_PointObject_TickOnce) test(t *testing.T) {
 
 	t.Log(test.desc)
 
-	pointObj.Init(&test.startPos, &test.startVel)
+	pointObj.Init(test.startPos, test.startVel)
 
 	mockBlockQuerier.EXPECT().BlockQuery(test.queryBlock).Return(test.isSolid, true)
 	pointObj.Tick(mockBlockQuerier)

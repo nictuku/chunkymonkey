@@ -446,7 +446,7 @@ func (player *Player) handleLook(look LookDegrees) {
 
 	// Update playerData on current chunk.
 	if shard, ok := player.chunkSubs.CurrentShardClient(); ok {
-		shard.ReqSetPlayerLook(player.chunkSubs.curChunkLoc, *look.ToLookBytes())
+		shard.ReqSetPlayerLook(player.chunkSubs.curChunkLoc, look.ToLookBytes())
 	}
 }
 

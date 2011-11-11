@@ -4,10 +4,10 @@
 package gamerules
 
 import (
-	"io"
 	"os"
 
 	"chunkymonkey/physics"
+	"chunkymonkey/proto"
 	. "chunkymonkey/types"
 	"nbt"
 )
@@ -29,13 +29,13 @@ type IEntity interface {
 	// Returns the entity's ID.
 	GetEntityId() EntityId
 
-	// SendSpawn writes the packets required to tell a client about the existance
-	// and current state of the entity.
-	SendSpawn(io.Writer) os.Error
+	// SpawnPackets appends and returns the packets required to tell a client
+	// about the existance and current state of the entity.
+	SpawnPackets([]proto.IPacket) []proto.IPacket
 
-	// SendUpdate writes the packets required to tell a client about the new
-	// state of the entity since the last SendUpdate or SendSpawn.
-	SendUpdate(io.Writer) os.Error
+	// SendUpdate appends and returns the packets required to tell a client about
+	// the new state of the entity since the last SendUpdate or SendSpawn.
+	UpdatePackets([]proto.IPacket) []proto.IPacket
 
 	// Returns the entity's current position.
 	Position() *AbsXyz

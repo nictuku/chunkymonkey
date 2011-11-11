@@ -459,8 +459,8 @@ type LookDegrees struct {
 	Yaw, Pitch AngleDegrees
 }
 
-func (l *LookDegrees) ToLookBytes() *LookBytes {
-	return &LookBytes{
+func (l *LookDegrees) ToLookBytes() LookBytes {
+	return LookBytes{
 		l.Yaw.ToAngleBytes(),
 		l.Pitch.ToAngleBytes(),
 	}

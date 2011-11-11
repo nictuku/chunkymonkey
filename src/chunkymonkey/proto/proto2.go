@@ -249,6 +249,7 @@ type PacketMobSpawn struct {
 	MobType  EntityMobType
 	Position AbsIntXyz
 	Look     LookBytes
+	Metadata EntityMetadataTable
 }
 
 func (*PacketMobSpawn) IsPacket() {}
@@ -386,8 +387,8 @@ type PacketMultiBlockChange struct {
 func (*PacketMultiBlockChange) IsPacket() {}
 
 type PacketBlockChange struct {
-	Position  BlockXyz
-	TypeId    byte
+	Block     BlockXyz
+	TypeId    BlockId
 	BlockData byte
 }
 
@@ -550,17 +551,15 @@ func (*PacketDisconnect) IsPacket() {}
 // Special packet field types.
 
 // EntityMetadataTable implements IMarshaler.
-type EntityMetadataTable struct {
-	Items []EntityMetadata
-}
+type EntityMetadataTable []EntityMetadata
 
 func (emt *EntityMetadataTable) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
-	emt.Items, err = readEntityMetadataField(reader)
+	*emt, err = readEntityMetadataField(reader)
 	return
 }
 
 func (emt *EntityMetadataTable) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
-	return writeEntityMetadataField(writer, emt.Items)
+	return writeEntityMetadataField(writer, *emt)
 }
 
 // ItemSlot implements IMarshaler.

@@ -1,7 +1,6 @@
 package physics
 
 import (
-	"io"
 	"math"
 	"os"
 
@@ -30,8 +29,8 @@ type blockAxisMove byte
 
 const (
 	blockAxisMoveX = blockAxisMove(iota)
-	blockAxisMoveY = blockAxisMove(iota)
-	blockAxisMoveZ = blockAxisMove(iota)
+	blockAxisMoveY
+	blockAxisMoveZ
 )
 
 type IBlockQuerier interface {
@@ -54,11 +53,11 @@ func (obj *PointObject) Position() *AbsXyz {
 	return &obj.position
 }
 
-func (obj *PointObject) Init(position *AbsXyz, velocity *AbsVelocity) {
+func (obj *PointObject) Init(position AbsXyz, velocity AbsVelocity) {
 	obj.LastSentPosition = *position.ToAbsIntXyz()
 	obj.LastSentVelocity = *velocity.ToVelocity()
-	obj.position = *position
-	obj.velocity = *velocity
+	obj.position = position
+	obj.velocity = velocity
 	obj.onGround = false
 }
 
@@ -110,7 +109,7 @@ func (obj *PointObject) MarshalNbt(tag *nbt.Compound) (err os.Error) {
 // It assumes that the clients have either been sent packets via this method
 // before, or that the previous position/velocity sent was generated from the
 // LastSentPosition and LastSentVelocity attributes.
-func (obj *PointObject) SendUpdate(writer io.Writer, entityId EntityId, look *LookBytes) (err os.Error) {
+func (obj *PointObject) UpdatePackets(pkts []proto.IPacket, entityId EntityId, look LookBytes) []proto.IPacket {
 	curPosition := obj.position.ToAbsIntXyz()
 
 	dx := curPosition.X - obj.LastSentPosition.X
@@ -119,34 +118,35 @@ func (obj *PointObject) SendUpdate(writer io.Writer, entityId EntityId, look *Lo
 
 	if dx != 0 || dy != 0 || dz != 0 {
 		if dx >= -128 && dx <= 127 && dy >= -128 && dy <= 127 && dz >= -128 && dz <= 127 {
-			err = proto.WriteEntityRelMove(
-				writer, entityId,
-				&RelMove{
+			pkts = append(pkts, &proto.PacketEntityLookAndRelMove{
+				EntityId: entityId,
+				Move: RelMove{
 					RelMoveCoord(dx),
 					RelMoveCoord(dy),
 					RelMoveCoord(dz),
 				},
-			)
+				Look: look,
+			})
 		} else {
-			err = proto.WriteEntityTeleport(
-				writer, entityId,
-				curPosition, look)
-		}
-		if err != nil {
-			return
+			pkts = append(pkts, &proto.PacketEntityTeleport{
+				EntityId: entityId,
+				Position: *curPosition,
+				Look:     look,
+			})
 		}
 		obj.LastSentPosition = *curPosition
 	}
 
 	curVelocity := obj.velocity.ToVelocity()
 	if curVelocity.X != obj.LastSentVelocity.X || curVelocity.Y != obj.LastSentVelocity.Y || curVelocity.Z != obj.LastSentVelocity.Z {
-		if err = proto.WriteEntityVelocity(writer, entityId, curVelocity); err != nil {
-			return
-		}
+		pkts = append(pkts, &proto.PacketEntityVelocity{
+			EntityId: entityId,
+			Velocity: *curVelocity,
+		})
 		obj.LastSentVelocity = *curVelocity
 	}
 
-	return
+	return pkts
 }
 
 func (obj *PointObject) Tick(blockQuerier IBlockQuerier) (leftChunk bool) {

@@ -250,8 +250,7 @@ func (ps *PacketSerializer) WritePacket(writer io.Writer, packet IPacket) (err o
 	return ps.writeData(writer, value)
 }
 
-func (ps *PacketSerializer) SerializePackets(packets ...IPacket) []byte {
-	buf := new(bytes.Buffer)
+func (ps *PacketSerializer) WritePacketsBuffer(buf *bytes.Buffer, packets ...IPacket) {
 	for _, pkt := range packets {
 		if err := ps.WritePacket(buf, pkt); err != nil {
 			// bytes.Buffer should never return an error, and any IPacket that isn't
@@ -259,6 +258,11 @@ func (ps *PacketSerializer) SerializePackets(packets ...IPacket) []byte {
 			panic(err)
 		}
 	}
+}
+
+func (ps *PacketSerializer) SerializePackets(packets ...IPacket) []byte {
+	buf := new(bytes.Buffer)
+	ps.WritePacketsBuffer(buf, packets...)
 	return buf.Bytes()
 }
 

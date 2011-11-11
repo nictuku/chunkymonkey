@@ -4,7 +4,6 @@
 package gamerules
 
 import (
-	"io"
 	"os"
 
 	"chunkymonkey/physics"
@@ -66,26 +65,27 @@ func (object *Object) MarshalNbt(tag *nbt.Compound) (err os.Error) {
 	return
 }
 
-func (object *Object) SendSpawn(writer io.Writer) (err os.Error) {
-	// TODO: Send non-nil ObjectData (is there any?)
-	err = proto.WriteObjectSpawn(writer, object.EntityId, object.ObjTypeId, &object.PointObject.LastSentPosition, nil)
-	if err != nil {
-		return
-	}
-
-	err = proto.WriteEntityVelocity(writer, object.EntityId, &object.PointObject.LastSentVelocity)
-	return
+func (object *Object) SpawnPackets(pkts []proto.IPacket) []proto.IPacket {
+	return append(pkts,
+		&proto.PacketObjectSpawn{
+			EntityId: object.EntityId,
+			ObjType:  object.ObjTypeId,
+			Position: object.PointObject.LastSentPosition,
+		},
+		&proto.PacketEntityVelocity{
+			EntityId: object.EntityId,
+			Velocity: object.PointObject.LastSentVelocity,
+		},
+	)
 }
 
-func (object *Object) SendUpdate(writer io.Writer) (err os.Error) {
-	if err = proto.WriteEntity(writer, object.EntityId); err != nil {
-		return
-	}
+func (object *Object) UpdatePackets(pkts []proto.IPacket) []proto.IPacket {
+	pkts = append(pkts, &proto.PacketEntity{object.EntityId})
 
 	// TODO: Should this be the Rotation information?
-	err = object.PointObject.SendUpdate(writer, object.EntityId, &LookBytes{0, 0})
+	pkts = object.PointObject.UpdatePackets(pkts, object.EntityId, LookBytes{})
 
-	return
+	return pkts
 }
 
 func NewBoat() INonPlayerEntity {
