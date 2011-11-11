@@ -85,7 +85,7 @@ type IShardShardClient interface {
 // game, including getting information about the game state, etc.
 type IGame interface {
 	// Broadcast a packet to all players on the server.
-	BroadcastPacket(packet []byte)
+	BroadcastPacket(packet proto.IPacket)
 
 	// Broadcast a message to all players on the server.
 	BroadcastMessage(msg string)
@@ -114,7 +114,7 @@ type IPlayerClient interface {
 
 	// InventorySubscribed informs the player that an inventory has been
 	// opened.
-	InventorySubscribed(block BlockXyz, invTypeId InvTypeId, slots []proto.WindowSlot)
+	InventorySubscribed(block BlockXyz, invTypeId InvTypeId, slots proto.ItemSlotSlice)
 
 	// InventorySlotUpdate informs the player of a change to a slot in the
 	// open inventory.

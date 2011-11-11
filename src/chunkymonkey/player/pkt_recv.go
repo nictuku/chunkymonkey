@@ -39,7 +39,7 @@ func (p *playerRx) init(conn io.Reader) {
 
 func (p *playerRx) Stop() {
 	select {
-	case p.ctrl<- struct{}{}:
+	case p.ctrl <- struct{}{}:
 	default:
 	}
 }

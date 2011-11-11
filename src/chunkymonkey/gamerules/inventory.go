@@ -23,8 +23,8 @@ type IInventory interface {
 	NumSlots() SlotId
 	Click(click *Click) (txState TxState)
 	SetSubscriber(subscriber IInventorySubscriber)
-	MakeProtoSlots() []proto.WindowSlot
-	WriteProtoSlots(slots []proto.WindowSlot)
+	MakeProtoSlots() proto.ItemSlotSlice
+	GetProtoSlots(slots proto.ItemSlotSlice)
 	TakeAllItems() (items []Slot)
 	UnmarshalNbt(tag *nbt.Compound) (err os.Error)
 	MarshalNbt(tag *nbt.Compound) (err os.Error)
@@ -174,19 +174,19 @@ func (inv *Inventory) CanTakeItem(item *Slot) bool {
 	return false
 }
 
-func (inv *Inventory) MakeProtoSlots() []proto.WindowSlot {
-	slots := make([]proto.WindowSlot, len(inv.slots))
-	inv.WriteProtoSlots(slots)
+func (inv *Inventory) MakeProtoSlots() proto.ItemSlotSlice {
+	slots := make(proto.ItemSlotSlice, len(inv.slots))
+	inv.GetProtoSlots(slots)
 	return slots
 }
 
 // WriteProtoSlots stores into the slots parameter the proto version of the
 // item data in the inventory.
 // Precondition: len(slots) == len(inv.slots)
-func (inv *Inventory) WriteProtoSlots(slots []proto.WindowSlot) {
+func (inv *Inventory) GetProtoSlots(slots proto.ItemSlotSlice) {
 	for i := range inv.slots {
 		src := &inv.slots[i]
-		slots[i] = proto.WindowSlot{
+		slots[i] = proto.ItemSlot{
 			ItemTypeId: src.ItemTypeId,
 			Count:      src.Count,
 			Data:       src.Data,

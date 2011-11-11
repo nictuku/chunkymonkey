@@ -77,7 +77,7 @@ type Player struct {
 	rxQueue      chan interface{}
 	txQueue      chan []byte
 	txErrChan    chan os.Error
-	stopPlayer   chan bool
+	stopPlayer   chan struct{}
 
 	// The following attributes are game-logic related.
 
@@ -134,7 +134,7 @@ func NewPlayer(entityId EntityId, shardConnecter gamerules.IShardConnecter, conn
 		mainQueue:  make(chan func(*Player), 128),
 		txQueue:    make(chan []byte, 128),
 		txErrChan:  make(chan os.Error, 1),
-		stopPlayer: make(chan bool, 1),
+		stopPlayer: make(chan struct{}, 1),
 
 		game: game,
 
@@ -286,15 +286,17 @@ func (player *Player) getHeldItemTypeId() ItemTypeId {
 }
 
 func (player *Player) Run() {
-	buf := &bytes.Buffer{}
 	// TODO pass proper dimension. This is low priority, because we don't yet
 	// support multiple dimensions.
 	// TODO pass proper map seed.
 	// TODO pass proper values for the difficulty.
 	// TODO proper max number of players.
-	proto.ServerWriteLogin(buf, player.EntityId, 0, 0, DimensionNormal, GameDifficultyNormal, MaxYCoord+1, 8)
-	proto.WriteSpawnPosition(buf, &player.spawnBlock)
-	player.TransmitPacket(buf.Bytes())
+	data := player.txPktSerial.SerializePackets(
+		&proto.PacketLogin{int32(player.EntityId), "", 0, 0, DimensionNormal, GameDifficultyNormal, MaxYCoord + 1, 8},
+		&proto.PacketSpawnPosition{player.spawnBlock.X, int32(player.spawnBlock.Y), player.spawnBlock.Z},
+	)
+
+	player.TransmitPacket(data)
 
 	go player.rx.loop()
 	go player.transmitLoop()
@@ -305,7 +307,7 @@ func (player *Player) Stop() {
 	// Don't block. If the channel has a message in already, then that's good
 	// enough.
 	select {
-	case player.stopPlayer <- true:
+	case player.stopPlayer <- struct{}{}:
 	default:
 	}
 }
@@ -561,11 +563,8 @@ func (player *Player) handlePacketWindowClick(pkt *proto.PacketWindowClick) {
 	switch txState {
 	case TxStateAccepted, TxStateRejected:
 		// Inform client of operation status.
-		buf := new(bytes.Buffer)
-		proto.WriteWindowTransaction(buf, pkt.WindowId, pkt.TxId, txState == TxStateAccepted)
-		player.cursor = click.Cursor
-		player.cursor.SendUpdate(buf, WindowIdCursor, SlotIdCursor)
-		player.TransmitPacket(buf.Bytes())
+		data := player.txPktSerial.SerializePackets(&proto.PacketWindowTransaction{pkt.WindowId, pkt.TxId, txState == TxStateAccepted})
+		player.TransmitPacket(data)
 	case TxStateDeferred:
 		// The remote inventory should send the transaction outcome.
 	}
@@ -639,9 +638,9 @@ func (player *Player) pingNew() {
 		}
 		player.ping.timestampNs = time.Nanoseconds()
 
-		buf := new(bytes.Buffer)
-		proto.WriteKeepAlive(buf, player.ping.id)
-		player.TransmitPacket(buf.Bytes())
+		data := player.txPktSerial.SerializePackets(
+			&proto.PacketKeepAlive{player.ping.id})
+		player.TransmitPacket(data)
 
 		player.ping.timer = time.NewTimer(PingTimeoutNs)
 	}
@@ -692,9 +691,7 @@ func (player *Player) pingReceived(id int32) {
 	// Check that there wasn't an apparent time-shift on this before broadcasting
 	// this latency value.
 	if latencyNs >= 0 && latencyNs < PingTimeoutNs {
-		buf := new(bytes.Buffer)
-		proto.WriteUserListItem(buf, player.name, true, int16(latencyNs/1e6))
-		player.game.BroadcastPacket(buf.Bytes())
+		player.game.BroadcastPacket(&proto.PacketPlayerListItem{player.name, true, int16(latencyNs / 1e6)})
 	}
 
 	player.ping.running = false
@@ -714,9 +711,7 @@ func (player *Player) mainLoop() {
 			player.ping.timer.Stop()
 		}
 
-		buf := new(bytes.Buffer)
-		proto.WriteUserListItem(buf, player.name, false, 0)
-		player.game.BroadcastPacket(buf.Bytes())
+		player.game.BroadcastPacket(&proto.PacketPlayerListItem{player.name, false, 0})
 	}()
 
 	defer player.rx.Stop()
@@ -767,20 +762,25 @@ func (player *Player) notifyChunkLoad() {
 		// Player seems to fall through block unless elevated very slightly.
 		player.position.Y += 0.01
 
-		// Send player start position etc.
-		buf := new(bytes.Buffer)
-		proto.ServerWritePlayerPositionLook(
-			buf,
-			&player.position, player.position.Y+player.height,
-			&player.look, false)
-		player.inventory.WriteWindowItems(buf)
-		proto.WriteUpdateHealth(buf, player.health, player.food, 0)
+		posLookPkt := &proto.PacketPlayerPositionLook{
+			Look:     player.look,
+			OnGround: false,
+		}
+		posLookPkt.SetStance(player.position.Y+player.height, false)
+		posLookPkt.SetPosition(player.position, false)
 
-		player.TransmitPacket(buf.Bytes())
+		// Send player start position, inventory, health.
+		data := player.txPktSerial.SerializePackets(
+			posLookPkt,
+			player.inventory.PacketWindowItems(),
+			&proto.PacketUpdateHealth{player.health, player.food, 0},
+		)
+
+		player.TransmitPacket(data)
 	}
 }
 
-func (player *Player) inventorySubscribed(block *BlockXyz, invTypeId InvTypeId, slots []proto.WindowSlot) {
+func (player *Player) inventorySubscribed(block *BlockXyz, invTypeId InvTypeId, slots proto.ItemSlotSlice) {
 	if player.remoteInv != nil {
 		player.closeCurrentWindow(true)
 	}
@@ -801,10 +801,12 @@ func (player *Player) inventorySubscribed(block *BlockXyz, invTypeId InvTypeId, 
 		player.nextWindowId++
 	}
 
-	buf := new(bytes.Buffer)
-	window.WriteWindowOpen(buf)
-	window.WriteWindowItems(buf)
-	player.TransmitPacket(buf.Bytes())
+	data := player.txPktSerial.SerializePackets(
+		window.PacketWindowOpen(),
+		window.PacketWindowItems(),
+	)
+
+	player.TransmitPacket(data)
 }
 
 func (player *Player) inventorySlotUpdate(block *BlockXyz, slot *gamerules.Slot, slotId SlotId) {

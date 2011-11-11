@@ -19,7 +19,7 @@ const (
 	Float64Four  = "\x40\x10\x00\x00\x00\x00\x00\x00"
 )
 
-func testPacketSerial(t *testing.T, fromClient bool, outputPkt interface{}, expectedSerialization te.IBytesMatcher) {
+func testPacketSerial(t *testing.T, fromClient bool, outputPkt IPacket, expectedSerialization te.IBytesMatcher) {
 	ps := new(PacketSerializer)
 
 	// Test reading.
@@ -372,7 +372,7 @@ func Benchmark_Packet_New_WriteString16(b *testing.B) {
 	}
 }
 
-func benchmarkPacket(b *testing.B, pkt interface{}) {
+func benchmarkPacket(b *testing.B, pkt IPacket) {
 	output := bytes.NewBuffer(make([]byte, 0, 1024))
 	var ps PacketSerializer
 	b.ResetTimer()

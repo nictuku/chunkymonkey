@@ -132,6 +132,14 @@ type PacketPlayerPositionLook struct {
 
 func (*PacketPlayerPositionLook) IsPacket() {}
 
+func (pkt *PacketPlayerPositionLook) SetStance(stance AbsCoord, fromClient bool) {
+	if fromClient {
+		pkt.Y2 = stance
+	} else {
+		pkt.Y1 = stance
+	}
+}
+
 func (pkt *PacketPlayerPositionLook) Stance(fromClient bool) AbsCoord {
 	if fromClient {
 		return pkt.Y2
@@ -144,6 +152,16 @@ func (pkt *PacketPlayerPositionLook) Position(fromClient bool) AbsXyz {
 		return AbsXyz{pkt.X, pkt.Y1, pkt.Z}
 	}
 	return AbsXyz{pkt.X, pkt.Y2, pkt.Z}
+}
+
+func (pkt *PacketPlayerPositionLook) SetPosition(position AbsXyz, fromClient bool) {
+	pkt.X = position.X
+	pkt.Z = position.Z
+	if fromClient {
+		pkt.Y1 = position.Y
+	} else {
+		pkt.Y2 = position.Y
+	}
 }
 
 type PacketPlayerBlockHit struct {

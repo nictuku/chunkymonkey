@@ -31,7 +31,7 @@ func (p *playerClient) NotifyChunkLoad() {
 	})
 }
 
-func (p *playerClient) InventorySubscribed(block BlockXyz, invTypeId InvTypeId, slots []proto.WindowSlot) {
+func (p *playerClient) InventorySubscribed(block BlockXyz, invTypeId InvTypeId, slots proto.ItemSlotSlice) {
 	p.player.Enqueue(func(_ *Player) {
 		p.player.inventorySubscribed(&block, invTypeId, slots)
 	})

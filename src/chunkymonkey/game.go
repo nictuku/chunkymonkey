@@ -1,7 +1,6 @@
 package chunkymonkey
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net"
@@ -31,6 +30,7 @@ type Game struct {
 	entityManager EntityManager
 	worldStore    *worldstore.WorldStore
 	connHandler   *ConnHandler
+	txPktSerial   proto.PacketSerializer
 
 	// Mapping between entityId/name and player object
 	players     map[EntityId]*player.Player
@@ -149,20 +149,19 @@ func (game *Game) onTick() {
 
 // Send a time/keepalive packet
 func (game *Game) sendTimeUpdate() {
-	buf := new(bytes.Buffer)
-	proto.ServerWriteTimeUpdate(buf, game.time)
-
-	game.multicastPacket(buf.Bytes(), nil)
+	game.multicastPacket(&proto.PacketTimeUpdate{game.time}, nil)
 }
 
 // Send a packet to every player connected to the server
-func (game *Game) multicastPacket(packet []byte, except interface{}) {
+func (game *Game) multicastPacket(pkt proto.IPacket, except *player.Player) {
+	data := game.txPktSerial.SerializePackets(pkt)
+
 	for _, player := range game.players {
 		if player == except {
 			continue
 		}
 
-		player.TransmitPacket(packet)
+		player.TransmitPacket(data)
 	}
 }
 
@@ -173,16 +172,14 @@ func (game *Game) enqueue(f func(*Game)) {
 
 // The following functions implement the IGame interface
 
-func (game *Game) BroadcastPacket(packet []byte) {
+func (game *Game) BroadcastPacket(packet proto.IPacket) {
 	game.enqueue(func(_ *Game) {
 		game.multicastPacket(packet, nil)
 	})
 }
 
 func (game *Game) BroadcastMessage(msg string) {
-	buf := new(bytes.Buffer)
-	proto.WriteChatMessage(buf, msg)
-	game.BroadcastPacket(buf.Bytes())
+	game.BroadcastPacket(&proto.PacketChatMessage{msg})
 }
 
 func (game *Game) ItemTypeById(id int) (gamerules.ItemType, bool) {

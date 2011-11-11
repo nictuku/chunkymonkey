@@ -94,7 +94,7 @@ func (s *Slot) SetItemSlot(itemSlot *proto.ItemSlot) {
 	}
 }
 
-func (s *Slot) SetWindowSlot(windowSlot *proto.WindowSlot) {
+func (s *Slot) SetWindowSlot(windowSlot *proto.ItemSlot) {
 	if windowSlot.ItemTypeId == -1 || windowSlot.ItemTypeId == 0 {
 		s.ItemTypeId = 0
 		s.Count = 0

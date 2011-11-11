@@ -38,7 +38,7 @@ func (w *PlayerInventory) Init(entityId EntityId, viewer IWindowViewer) {
 	w.Window.Init(
 		WindowIdInventory,
 		// Note that we have no known value for invTypeId - but it's only used
-		// in WriteWindowOpen which isn't used for PlayerInventory.
+		// in PacketWindowOpen which isn't used for PlayerInventory.
 		-1,
 		viewer,
 		"Inventory",

@@ -9,11 +9,11 @@ import (
 type RemoteInventory struct {
 	blockLoc   BlockXyz
 	chunkSubs  *chunkSubscriptions
-	slots      []proto.WindowSlot
+	slots      proto.ItemSlotSlice
 	subscriber gamerules.IInventorySubscriber
 }
 
-func NewRemoteInventory(block *BlockXyz, chunkSubs *chunkSubscriptions, slots []proto.WindowSlot) *RemoteInventory {
+func NewRemoteInventory(block *BlockXyz, chunkSubs *chunkSubscriptions, slots proto.ItemSlotSlice) *RemoteInventory {
 	return &RemoteInventory{
 		blockLoc:   *block,
 		chunkSubs:  chunkSubs,
@@ -66,7 +66,7 @@ func (inv *RemoteInventory) SetSubscriber(subscriber gamerules.IInventorySubscri
 	inv.subscriber = subscriber
 }
 
-func (inv *RemoteInventory) WriteProtoSlots(slots []proto.WindowSlot) {
+func (inv *RemoteInventory) GetProtoSlots(slots proto.ItemSlotSlice) {
 	// Note that this only produces accurate results before any slot updates come
 	// through. inv.slots contains only a snapshot of the state when the window
 	// opened.

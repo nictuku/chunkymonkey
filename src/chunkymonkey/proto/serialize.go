@@ -1,6 +1,7 @@
 package proto
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -247,6 +248,18 @@ func (ps *PacketSerializer) WritePacket(writer io.Writer, packet IPacket) (err o
 	}
 
 	return ps.writeData(writer, value)
+}
+
+func (ps *PacketSerializer) SerializePackets(packets ...IPacket) []byte {
+	buf := new(bytes.Buffer)
+	for _, pkt := range packets {
+		if err := ps.WritePacket(buf, pkt); err != nil {
+			// bytes.Buffer should never return an error, and any IPacket that isn't
+			// serializable is a programming error.
+			panic(err)
+		}
+	}
+	return buf.Bytes()
 }
 
 func (ps *PacketSerializer) writeData(writer io.Writer, value reflect.Value) (err os.Error) {

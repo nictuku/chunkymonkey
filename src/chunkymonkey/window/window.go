@@ -3,8 +3,6 @@ package window
 
 import (
 	"bytes"
-	"io"
-	"os"
 
 	"chunkymonkey/gamerules"
 	"chunkymonkey/proto"
@@ -16,7 +14,7 @@ type IInventory interface {
 	NumSlots() SlotId
 	Click(click *gamerules.Click) (txState TxState)
 	SetSubscriber(subscriber gamerules.IInventorySubscriber)
-	WriteProtoSlots(slots []proto.WindowSlot)
+	GetProtoSlots(slots proto.ItemSlotSlice)
 }
 
 // IWindow is the interface on to types that represent a view on to multiple
@@ -24,8 +22,8 @@ type IInventory interface {
 type IWindow interface {
 	WindowId() WindowId
 	Click(click *gamerules.Click) (txState TxState)
-	WriteWindowOpen(writer io.Writer) (err os.Error)
-	WriteWindowItems(writer io.Writer) (err os.Error)
+	PacketWindowOpen() *proto.PacketWindowOpen
+	PacketWindowItems() *proto.PacketWindowItems
 	Finalize(sendClosePacket bool)
 }
 
@@ -131,29 +129,32 @@ func (w *Window) Finalize(sendClosePacket bool) {
 	}
 }
 
-// WriteWindowOpen writes a packet describing the window to the writer.
-func (w *Window) WriteWindowOpen(writer io.Writer) (err os.Error) {
-	// Note that the window size is the number of slots in the first inventory,
-	// not including the player inventories.
-	err = proto.WriteWindowOpen(
-		writer, w.windowId, w.invTypeId, w.title,
-		byte(w.views[0].inventory.NumSlots()),
-	)
-	return
+// PacketWindowOpen creates a packet describing the window to the writer.
+func (w *Window) PacketWindowOpen() *proto.PacketWindowOpen {
+	return &proto.PacketWindowOpen{
+		WindowId:  w.windowId,
+		Inventory: w.invTypeId,
+		Title:     w.title,
+		// Note that the window size is the number of slots in the first inventory,
+		// not including the player inventories.
+		NumSlots: byte(w.views[0].inventory.NumSlots()),
+	}
 }
 
 // WriteWindowItems writes a packet describing the window contents to the
 // writer. It assumes that any required locks on the inventories are held.
-func (w *Window) WriteWindowItems(writer io.Writer) (err os.Error) {
-	items := make([]proto.WindowSlot, w.numSlots)
+func (w *Window) PacketWindowItems() *proto.PacketWindowItems {
+	items := make(proto.ItemSlotSlice, w.numSlots)
 
 	for i := range w.views {
 		view := &w.views[i]
-		view.inventory.WriteProtoSlots(items[view.startSlot:view.endSlot])
+		view.inventory.GetProtoSlots(items[view.startSlot:view.endSlot])
 	}
 
-	err = proto.WriteWindowItems(writer, w.windowId, items)
-	return
+	return &proto.PacketWindowItems{
+		WindowId: w.windowId,
+		Slots:    items,
+	}
 }
 
 func (w *Window) Click(click *gamerules.Click) TxState {
