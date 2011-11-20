@@ -2,6 +2,7 @@ package proto
 
 import (
 	"bytes"
+	"compress/gzip"
 	"compress/zlib"
 	"encoding/binary"
 	"io"
@@ -10,15 +11,39 @@ import (
 	"reflect"
 
 	. "chunkymonkey/types"
+	"nbt"
 )
 
 const (
 	// Currently only this protocol version is supported.
-	protocolVersion = 17
+	protocolVersion = 22
 
 	maxUcs2Char  = 0xffff
 	ucs2ReplChar = 0xfffd
 )
+
+// nbtItemIds is the set of item type IDs that have an NBT structure associated
+// with them in packets. Taken from https://gist.github.com/1268479
+var nbtItemIds = map[ItemTypeId]bool{
+	0x15A: true, // Fishing rod
+	0x167: true, // Shears
+
+	// TOOLS
+	// sword, shovel, pickaxe, axe, hoe
+	0x10C: true, 0x10D: true, 0x10E: true, 0x10F: true, 0x122: true, // WOOD
+	0x110: true, 0x111: true, 0x112: true, 0x113: true, 0x123: true, // STONE
+	0x10B: true, 0x100: true, 0x101: true, 0x102: true, 0x124: true, // IRON
+	0x114: true, 0x115: true, 0x116: true, 0x117: true, 0x125: true, // DIAMOND
+	0x11B: true, 0x11C: true, 0x11D: true, 0x11E: true, 0x126: true, // GOLD
+
+	// ARMOUR
+	// helmet, chestplate, leggings, boots
+	0x12A: true, 0x12B: true, 0x12C: true, 0x12D: true, // LEATHER
+	0x12E: true, 0x12F: true, 0x130: true, 0x131: true, // CHAIN
+	0x132: true, 0x133: true, 0x134: true, 0x135: true, // IRON
+	0x136: true, 0x137: true, 0x138: true, 0x139: true, // DIAMOND
+	0x13A: true, 0x13B: true, 0x13C: true, 0x14D: true, // GOLD
+}
 
 type IPacket interface {
 	// IsPacket doesn't do anything, it's present purely for type-checking
@@ -575,12 +600,13 @@ type ItemSlot struct {
 	ItemTypeId ItemTypeId
 	Count      ItemCount
 	Data       ItemData
+	Nbt        nbt.Compound
 }
 
-func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
+func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) os.Error {
 	typeIdUint16, err := ps.readUint16(reader)
 	if err != nil {
-		return
+		return err
 	}
 	is.ItemTypeId = ItemTypeId(typeIdUint16)
 
@@ -599,25 +625,96 @@ func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (
 
 		is.Count = ItemCount(countUint8)
 		is.Data = ItemData(dataUint16)
+
+		if _, requiresNbt := nbtItemIds[is.ItemTypeId]; requiresNbt {
+			// Read NBT data.
+			lUint16, err := ps.readUint16(reader)
+			if err != nil {
+				return err
+			}
+			lInt16 := int16(lUint16)
+			if lInt16 < 0 {
+				return nil
+			}
+
+			zReader, err := gzip.NewReader(&io.LimitedReader{reader, int64(lInt16)})
+			if err != nil {
+				return err
+			}
+
+			err = zReader.Close()
+			if err != nil {
+				return err
+			}
+
+			err = is.Nbt.Read(zReader)
+			if err != nil {
+				return err
+			}
+		}
 	}
-	return
+	return nil
 }
 
-func (is *ItemSlot) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
-	if err = ps.writeUint16(writer, uint16(is.ItemTypeId)); err != nil {
-		return
+func (is *ItemSlot) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) os.Error {
+	err := ps.writeUint16(writer, uint16(is.ItemTypeId))
+	if err != nil {
+		return err
 	}
 
 	if is.ItemTypeId != -1 {
-		if err = ps.writeUint8(writer, uint8(is.Count)); err != nil {
-			return
+		err = ps.writeUint8(writer, uint8(is.Count))
+		if err != nil {
+			return err
 		}
-		if err = ps.writeUint16(writer, uint16(is.Data)); err != nil {
-			return
+		err = ps.writeUint16(writer, uint16(is.Data))
+		if err != nil {
+			return err
+		}
+
+		if _, requiresNbt := nbtItemIds[is.ItemTypeId]; requiresNbt {
+			// Write NBT data.
+			if len(is.Nbt.Tags) == 0 {
+				// No tags.
+				err = ps.writeUint16(writer, uint16(0xffff))
+				if err != nil {
+					return err
+				}
+			} else {
+				// Have tags.
+				var buf bytes.Buffer
+
+				zWriter, err := gzip.NewWriter(&buf)
+				if err != nil {
+					return err
+				}
+
+				err = is.Nbt.Write(zWriter)
+				if err != nil {
+					return err
+				}
+
+				err = zWriter.Close()
+				if err != nil {
+					return err
+				}
+
+				data := buf.Bytes()
+
+				err = ps.writeUint16(writer, uint16(len(data)))
+				if err != nil {
+					return err
+				}
+
+				_, err = writer.Write(data)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
-	return
+	return nil
 }
 
 // ItemSlotSlice implements IMarshaler.
@@ -878,12 +975,6 @@ func (md *MapData) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err
 
 	_, err = writer.Write([]byte(*md))
 	return
-}
-
-type WindowSlot struct {
-	ItemTypeId ItemTypeId
-	Count      ItemCount
-	Data       ItemData
 }
 
 type EntityMetadata struct {

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "chunkymonkey/types"
+	"nbt"
 	te "testencoding"
 )
 
@@ -39,7 +40,7 @@ func testPacketSerial(t *testing.T, fromClient bool, outputPkt IPacket, expected
 		t.Errorf("Unexpected error writing packet: %v\n  %#v\v", err, outputPkt)
 	} else {
 		if err := te.Matches(expectedSerialization, output.Bytes()); err != nil {
-			t.Errorf("Output of writing packet did not match: %v\n  %#v", err, outputPkt)
+			t.Errorf("Output of writing packet did not match: %v\n%#v", err, outputPkt)
 		}
 	}
 }
@@ -196,6 +197,74 @@ func Test_PacketPlayerBlockInteract(t *testing.T) {
 			"\x00\x00\x00\x03"+
 			"\x02"+
 			"\xff\xff"),
+	)
+
+	// Test with an item that can have NBT data, but which is empty.
+	testPacketSerial(
+		t,
+		true,
+		&PacketPlayerBlockInteract{
+			Block: BlockXyz{1, 2, 3},
+			Face:  4,
+			Tool: ItemSlot{
+				ItemTypeId: 0x111,
+				Count:      1,
+				Data:       0x30,
+			},
+		},
+		te.LiteralString("\x0f"+
+			"\x00\x00\x00\x01"+
+			"\x02"+
+			"\x00\x00\x00\x03"+
+			"\x04"+
+			"\x01\x11"+
+			"\x01"+
+			"\x00\x30"+
+			"\xff\xff"),
+	)
+
+	// Test with an item that has NBT data.
+	testPacketSerial(
+		t,
+		true,
+		&PacketPlayerBlockInteract{
+			Block: BlockXyz{1, 2, 3},
+			Face:  4,
+			Tool: ItemSlot{
+				ItemTypeId: 0x111,
+				Count:      1,
+				Data:       0x30,
+				Nbt: nbt.Compound{
+					Tags: map[string]nbt.ITag{
+						"ench": &nbt.List{
+							TagType: nbt.TagCompound,
+							Value: []nbt.ITag{
+								&nbt.Compound{
+									Tags: map[string]nbt.ITag{
+										"id":  &nbt.Short{3},
+										"lvl": &nbt.Short{2},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		te.LiteralString("\x0f"+
+			"\x00\x00\x00\x01"+
+			"\x02"+
+			"\x00\x00\x00\x03"+
+			"\x04"+
+			"\x01\x11"+
+			"\x01"+
+			"\x00\x30"+
+			"\x00\x35"+
+			// TODO This really should use gzip library to read the output data.
+			// Literal is somewhat fragile to underlying harmless changes.
+			"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\xe2\x64\x60\x49\xcd\x4b\xce\xe0"+
+			"\x62\x60\x60\x60\x64\x62\x60\xca\x4c\x61\x60\x66\x62\x60\xce\x29\xcb\x61"+
+			"\x60\x62\x60\x00\x04\x00\x00\xff\xff\x45\x0b\x90\xdf\x1d\x00\x00\x00"),
 	)
 }
 
