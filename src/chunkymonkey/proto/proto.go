@@ -274,6 +274,8 @@ type PacketObjectSpawn struct {
 	EntityId EntityId
 	ObjType  ObjTypeId
 	Position AbsIntXyz
+	// TODO thrower ID etc.
+	Fireball FireballData
 }
 
 func (*PacketObjectSpawn) IsPacket() {}
@@ -392,8 +394,8 @@ type PacketEntityRemoveEffect struct {
 func (*PacketEntityRemoveEffect) IsPacket() {}
 
 type PacketPlayerExperience struct {
-	Experience      int8
-	Level           int8
+	Experience      float32
+	Level           int16
 	TotalExperience int16
 }
 
@@ -528,14 +530,18 @@ type PacketWindowTransaction struct {
 func (*PacketWindowTransaction) IsPacket() {}
 
 type PacketCreativeInventoryAction struct {
-	Slot       SlotId
-	ItemTypeId ItemTypeId
-	// Note that unlike other packets, the Count and Data are always present.
-	Count int16
-	Data  ItemData
+	SlotId SlotId
+	Slot   ItemSlot
 }
 
 func (*PacketCreativeInventoryAction) IsPacket() {}
+
+type PacketEnchantItem struct {
+	WindowId    WindowId
+	Enchantment int8
+}
+
+func (*PacketEnchantItem) IsPacket() {}
 
 type PacketSignUpdate struct {
 	X     int32
@@ -754,6 +760,67 @@ func (slots *ItemSlotSlice) MinecraftMarshal(writer io.Writer, ps *PacketSeriali
 	}
 
 	return
+}
+
+// FireballData implements IMarshaler.
+var assertFireballData = IMarshaler(&FireballData{})
+
+type FireballData struct {
+	ThrowerId EntityId
+	X, Y, Z   int16
+}
+
+func (fd *FireballData) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) os.Error {
+	throwerId, err := ps.readUint32(reader)
+	if err != nil {
+		return err
+	}
+
+	fd.ThrowerId = EntityId(throwerId)
+	if fd.ThrowerId > 0 {
+		x, err := ps.readUint16(reader)
+		if err != nil {
+			return err
+		}
+		y, err := ps.readUint16(reader)
+		if err != nil {
+			return err
+		}
+		z, err := ps.readUint16(reader)
+		if err != nil {
+			return err
+		}
+
+		fd.X, fd.Y, fd.Z = int16(x), int16(y), int16(z)
+	} else {
+		fd.X, fd.Y, fd.Z = 0, 0, 0
+	}
+
+	return nil
+}
+
+func (fd *FireballData) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) os.Error {
+	err := ps.writeUint32(writer, uint32(fd.ThrowerId))
+	if err != nil {
+		return err
+	}
+
+	if fd.ThrowerId > 0 {
+		err = ps.writeUint16(writer, uint16(fd.X))
+		if err != nil {
+			return err
+		}
+		err = ps.writeUint16(writer, uint16(fd.Y))
+		if err != nil {
+			return err
+		}
+		err = ps.writeUint16(writer, uint16(fd.Z))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ChunkData implements IMarshaler.

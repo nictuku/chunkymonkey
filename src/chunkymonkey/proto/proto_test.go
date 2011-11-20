@@ -389,6 +389,49 @@ func Test_PacketItemData(t *testing.T) {
 	)
 }
 
+func Test_PacketObjectSpawn(t *testing.T) {
+	// Test for non-fireball data case.
+	testPacketSerial(
+		t,
+		false,
+		&PacketObjectSpawn{
+			EntityId: 4,
+			ObjType:  3,
+			Position: AbsIntXyz{1, 2, 3},
+		},
+		te.LiteralString("\x17"+
+			"\x00\x00\x00\x04"+
+			"\x03"+
+			"\x00\x00\x00\x01"+
+			"\x00\x00\x00\x02"+
+			"\x00\x00\x00\x03"+
+			"\x00\x00\x00\x00"),
+	)
+
+	// Test for fireball data case.
+	testPacketSerial(
+		t,
+		false,
+		&PacketObjectSpawn{
+			EntityId: 4,
+			ObjType:  3,
+			Position: AbsIntXyz{1, 2, 3},
+			Fireball: FireballData{
+				ThrowerId: 20,
+				X:         4, Y: 5, Z: 6,
+			},
+		},
+		te.LiteralString("\x17"+
+			"\x00\x00\x00\x04"+
+			"\x03"+
+			"\x00\x00\x00\x01"+
+			"\x00\x00\x00\x02"+
+			"\x00\x00\x00\x03"+
+			"\x00\x00\x00\x14"+
+			"\x00\x04\x00\x05\x00\x06"),
+	)
+}
+
 func Benchmark_Packet_ReadString16(b *testing.B) {
 	var ps PacketSerializer
 	data := []byte("\x08\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e")

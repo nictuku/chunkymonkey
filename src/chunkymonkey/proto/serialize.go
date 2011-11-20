@@ -48,8 +48,8 @@ var (
 // struct and slice-based types currently, as a hacky method of optimizing
 // which packet fields are checked for this property.
 type IMarshaler interface {
-	MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error)
-	MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error)
+	MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) os.Error
+	MinecraftMarshal(writer io.Writer, ps *PacketSerializer) os.Error
 }
 
 // PacketSerializer reads and writes packets. It is not safe to use one
