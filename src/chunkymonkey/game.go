@@ -53,11 +53,6 @@ func NewGame(worldPath string, listener net.Listener, serverDesc, maintenanceMsg
 		return nil, err
 	}
 
-	authserver, err := server_auth.NewServerAuth("http://www.minecraft.net/game/checkserver.jsp")
-	if err != nil {
-		return
-	}
-
 	game = &Game{
 		players:          make(map[EntityId]*player.Player),
 		playerNames:      make(map[string]*player.Player),
@@ -70,13 +65,16 @@ func NewGame(worldPath string, listener net.Listener, serverDesc, maintenanceMsg
 
 	game.entityManager.Init()
 
-	game.serverId = fmt.Sprintf("%016x", rand.NewSource(worldStore.Seed).Int63())
-	//game.serverId = "-"
-
 	game.shardManager = shardserver.NewLocalShardManager(worldStore.ChunkStore, &game.entityManager)
 
 	// TODO: Load the prefix from a config file
 	gamerules.CommandFramework = command.NewCommandFramework("/")
+
+	game.serverId = fmt.Sprintf("%08x", rand.NewSource(worldStore.Seed).Int63())
+	authserver, err := server_auth.NewServerAuth(game.serverId, "http://www.minecraft.net/game/checkserver.jsp")
+	if err != nil {
+		return
+	}
 
 	// Start accepting connections.
 	game.connHandler = NewConnHandler(listener, &GameInfo{
@@ -84,7 +82,6 @@ func NewGame(worldPath string, listener net.Listener, serverDesc, maintenanceMsg
 		maxPlayerCount: maxPlayerCount,
 		serverDesc:     serverDesc,
 		maintenanceMsg: maintenanceMsg,
-		serverId:       game.serverId,
 		shardManager:   game.shardManager,
 		entityManager:  &game.entityManager,
 		worldStore:     game.worldStore,

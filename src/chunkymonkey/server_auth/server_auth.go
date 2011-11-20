@@ -20,47 +20,50 @@ func init() {
 	expVarServerAuthTimeNs = expvar.NewInt("server-auth-time-ns")
 }
 
-// An IAuthenticator takes a serverId and a user string and attempts to
+// An IAuthenticator takes a sessionId and a user string and attempts to
 // authenticate against a server. This interface allows for the use of a dummy
 // authentication server for testing purposes.
 type IAuthenticator interface {
-	Authenticate(string, string) (bool, os.Error)
+	Authenticate(sessionId, user string) (ok bool, err os.Error)
 }
 
 // DummyAuth is a no-op authentication server, always returning the value of
-// 'Valid'.
+// 'Result'.
 type DummyAuth struct {
 	Result bool
 }
 
 // Authenticate implements the IAuthenticator.Authenticate method
-func (d *DummyAuth) Authenticate(serverId, user string) (authenticated bool, err os.Error) {
+func (d *DummyAuth) Authenticate(sessionId, user string) (authenticated bool, err os.Error) {
 	return d.Result, nil
 }
 
 // ServerAuth represents authentication against a server, particularly the
 // main minecraft server at http://www.minecraft.net/game/checkserver.jsp.
 type ServerAuth struct {
-	baseUrl url.URL
+	serverId string
+	baseUrl  url.URL
 }
 
-func NewServerAuth(baseUrlStr string) (s *ServerAuth, err os.Error) {
+func NewServerAuth(serverId, baseUrlStr string) (s *ServerAuth, err os.Error) {
 	baseUrl, err := url.Parse(baseUrlStr)
 	if err != nil {
 		return
 	}
 	s = &ServerAuth{
-		baseUrl: *baseUrl,
+		serverId: serverId,
+		baseUrl:  *baseUrl,
 	}
 	return
 }
 
 // Build a URL+query string based on a given server URL, serverId and user
 // input
-func (s *ServerAuth) BuildQuery(serverId, user string) (query string) {
+func (s *ServerAuth) buildQuery(sessionId, user string) (query string) {
 	queryValues := url.Values{
-		"serverId": {serverId},
-		"user":     {user},
+		"serverId":  {s.serverId},
+		"sessionId": {sessionId},
+		"user":      {user},
 	}
 
 	queryUrl := s.baseUrl
@@ -70,7 +73,7 @@ func (s *ServerAuth) BuildQuery(serverId, user string) (query string) {
 }
 
 // Authenticate implements the IAuthenticator.Authenticate method
-func (s *ServerAuth) Authenticate(serverId, user string) (authenticated bool, err os.Error) {
+func (s *ServerAuth) Authenticate(sessionId, user string) (authenticated bool, err os.Error) {
 	before := time.Nanoseconds()
 	defer func() {
 		after := time.Nanoseconds()
@@ -84,7 +87,7 @@ func (s *ServerAuth) Authenticate(serverId, user string) (authenticated bool, er
 
 	authenticated = false
 
-	url_ := s.BuildQuery(serverId, user)
+	url_ := s.buildQuery(sessionId, user)
 
 	response, err := http.Get(url_)
 	if err != nil {

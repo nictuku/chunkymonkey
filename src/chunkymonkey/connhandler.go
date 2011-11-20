@@ -3,8 +3,9 @@ package chunkymonkey
 import (
 	"fmt"
 	"log"
-	"os"
 	"net"
+	"os"
+	"rand"
 
 	. "chunkymonkey/entity"
 	"chunkymonkey/gamerules"
@@ -43,7 +44,6 @@ type GameInfo struct {
 	maxPlayerCount int
 	serverDesc     string
 	maintenanceMsg string
-	serverId       string
 	shardManager   *shardserver.LocalShardManager
 	entityManager  *EntityManager
 	worldStore     *worldstore.WorldStore
@@ -171,27 +171,27 @@ func (l *pktHandler) handleLogin(pktHandshake *proto.PacketHandshake) (err, clie
 		return
 	}
 
-	if err = l.ps.WritePacket(l.conn, &proto.PacketHandshake{l.gameInfo.serverId}); err != nil {
+	sessionId := fmt.Sprintf("%08x", rand.Int63())
+	log.Printf("Player %q has sessionId %s", username, sessionId)
+
+	if err = l.ps.WritePacket(l.conn, &proto.PacketHandshake{sessionId}); err != nil {
 		clientErr = clientErrHandshake
 		return
 	}
 
-	if l.gameInfo.serverId != "-" {
-		var authenticated bool
-		authenticated, err = l.gameInfo.authserver.Authenticate(l.gameInfo.serverId, username)
-		if !authenticated || err != nil {
-			var reason string
-			if err != nil {
-				reason = "Authentication check failed: " + err.String()
-			} else {
-				reason = "Failed authentication"
-			}
-			err = fmt.Errorf("Client %v: %s", l.conn.RemoteAddr(), reason)
-			clientErr = clientErrAuthFailed
-			return
+	authenticated, err := l.gameInfo.authserver.Authenticate(sessionId, username)
+	if !authenticated || err != nil {
+		var reason string
+		if err != nil {
+			reason = "Authentication check failed: " + err.String()
+		} else {
+			reason = "Failed authentication"
 		}
-		log.Print("Client ", l.conn.RemoteAddr(), " passed minecraft.net authentication")
+		err = fmt.Errorf("Client %v: %s", l.conn.RemoteAddr(), reason)
+		clientErr = clientErrAuthFailed
+		return
 	}
+	log.Print("Client ", l.conn.RemoteAddr(), " passed minecraft.net authentication")
 
 	if _, err = l.ps.ReadPacketExpect(l.conn, true, 0x01); err != nil {
 		clientErr = clientErrLoginGeneral
