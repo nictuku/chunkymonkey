@@ -25,6 +25,7 @@ const (
 // nbtItemIds is the set of item type IDs that have an NBT structure associated
 // with them in packets. Taken from https://gist.github.com/1268479
 var nbtItemIds = map[ItemTypeId]bool{
+	0x105: true, // Bow
 	0x15A: true, // Fishing rod
 	0x167: true, // Shears
 
