@@ -455,6 +455,11 @@ func (c Compound) Read(reader io.Reader) (err os.Error) {
 	var tag ITag
 	var tagName string
 
+	// In-place clear the map.
+	for k := range c {
+		c[k] = nil, false
+	}
+
 	for {
 		if tag, tagName, err = readTagAndName(reader); err != nil {
 			return

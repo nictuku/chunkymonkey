@@ -638,7 +638,6 @@ func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) o
 				return nil
 			}
 
-			is.Nbt = nbt.NewCompound()
 			zReader, err := gzip.NewReader(&io.LimitedReader{reader, int64(lInt16)})
 			if err != nil {
 				return err
@@ -649,7 +648,7 @@ func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) o
 				return err
 			}
 
-			err = is.Nbt.Read(zReader)
+			is.Nbt, err = nbt.Read(zReader)
 			if err != nil {
 				return err
 			}
@@ -691,7 +690,7 @@ func (is *ItemSlot) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) os.
 					return err
 				}
 
-				err = is.Nbt.Write(zWriter)
+				err = nbt.Write(zWriter, is.Nbt)
 				if err != nil {
 					return err
 				}
