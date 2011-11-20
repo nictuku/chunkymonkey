@@ -41,7 +41,7 @@ func (mob *Mob) Init(id EntityMobType) {
 	expVarMobSpawnCount.Add(1)
 }
 
-func (mob *Mob) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (mob *Mob) UnmarshalNbt(tag nbt.Compound) (err os.Error) {
 	if err = mob.PointObject.UnmarshalNbt(tag); err != nil {
 		return
 	}
@@ -62,7 +62,7 @@ func (mob *Mob) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
 	return nil
 }
 
-func (mob *Mob) MarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (mob *Mob) MarshalNbt(tag nbt.Compound) (err os.Error) {
 	mobTypeName, ok := MobNameByType[mob.mobType]
 	if !ok {
 		return os.NewError("unknown mob type")

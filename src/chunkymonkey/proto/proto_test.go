@@ -235,16 +235,12 @@ func Test_PacketPlayerBlockInteract(t *testing.T) {
 				Count:      1,
 				Data:       0x30,
 				Nbt: nbt.Compound{
-					Tags: map[string]nbt.ITag{
-						"ench": &nbt.List{
-							TagType: nbt.TagCompound,
-							Value: []nbt.ITag{
-								&nbt.Compound{
-									Tags: map[string]nbt.ITag{
-										"id":  &nbt.Short{3},
-										"lvl": &nbt.Short{2},
-									},
-								},
+					"ench": &nbt.List{
+						TagType: nbt.TagCompound,
+						Value: []nbt.ITag{
+							nbt.Compound{
+								"id":  &nbt.Short{3},
+								"lvl": &nbt.Short{2},
 							},
 						},
 					},

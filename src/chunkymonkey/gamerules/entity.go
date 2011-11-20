@@ -16,11 +16,11 @@ import (
 // NBT data structures for persistency.
 type INbtSerializable interface {
 	// UnmarshalNbt reads the NBT tag to set the state of the object.
-	UnmarshalNbt(*nbt.Compound) os.Error
+	UnmarshalNbt(nbt.Compound) os.Error
 
 	// MarshalNbt creates an NBT tag representing the entity. This can be nil if
 	// the entity cannot be serialized.
-	MarshalNbt(*nbt.Compound) os.Error
+	MarshalNbt(nbt.Compound) os.Error
 }
 
 // IEntity represents common elements to all types of non-block entities that

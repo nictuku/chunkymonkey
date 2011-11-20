@@ -600,7 +600,8 @@ type ItemSlot struct {
 	ItemTypeId ItemTypeId
 	Count      ItemCount
 	Data       ItemData
-	Nbt        nbt.Compound
+	// Nbt can be nil.
+	Nbt nbt.Compound
 }
 
 func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) os.Error {
@@ -637,6 +638,7 @@ func (is *ItemSlot) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) o
 				return nil
 			}
 
+			is.Nbt = nbt.NewCompound()
 			zReader, err := gzip.NewReader(&io.LimitedReader{reader, int64(lInt16)})
 			if err != nil {
 				return err
@@ -674,7 +676,7 @@ func (is *ItemSlot) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) os.
 
 		if _, requiresNbt := nbtItemIds[is.ItemTypeId]; requiresNbt {
 			// Write NBT data.
-			if len(is.Nbt.Tags) == 0 {
+			if is.Nbt == nil || len(is.Nbt) == 0 {
 				// No tags.
 				err = ps.writeUint16(writer, uint16(0xffff))
 				if err != nil {

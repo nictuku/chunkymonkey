@@ -19,9 +19,9 @@ func displayNbt(indentCount int, tag nbt.ITag) {
 	}
 	indent := strings.Repeat("  ", indentCount)
 	switch t := tag.(type) {
-	case *nbt.Compound:
+	case nbt.Compound:
 		fmt.Print("Compound:\n")
-		for name, subTag := range t.Tags {
+		for name, subTag := range t {
 			fmt.Printf("%s%#v: ", indent, name)
 			displayNbt(indentCount+1, subTag)
 		}

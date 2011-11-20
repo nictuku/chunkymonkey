@@ -125,7 +125,7 @@ func (w *PlayerInventory) UnmarshalNbt(tag nbt.ITag) (err os.Error) {
 	}
 
 	for _, slotTagITag := range list.Value {
-		slotTag, ok := slotTagITag.(*nbt.Compound)
+		slotTag, ok := slotTagITag.(nbt.Compound)
 		if !ok {
 			return os.NewError("non-compound found for slot in player inventory")
 		}
@@ -164,7 +164,7 @@ func (w *PlayerInventory) UnmarshalNbt(tag nbt.ITag) (err os.Error) {
 	return
 }
 
-func (w *PlayerInventory) MarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (w *PlayerInventory) MarshalNbt(tag nbt.Compound) (err os.Error) {
 	slots := make([]nbt.ITag, 0, 0)
 
 	// Add the holding inventory

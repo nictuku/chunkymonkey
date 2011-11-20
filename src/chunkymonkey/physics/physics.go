@@ -61,7 +61,7 @@ func (obj *PointObject) Init(position AbsXyz, velocity AbsVelocity) {
 	obj.onGround = false
 }
 
-func (obj *PointObject) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (obj *PointObject) UnmarshalNbt(tag nbt.Compound) (err os.Error) {
 	// Position within the chunk
 	if obj.position, err = nbtutil.ReadAbsXyz(tag, "Pos"); err != nil {
 		return
@@ -81,25 +81,25 @@ func (obj *PointObject) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
 	return nil
 }
 
-func (obj *PointObject) MarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (obj *PointObject) MarshalNbt(tag nbt.Compound) (err os.Error) {
 	var onGround int8
 	if obj.onGround {
 		onGround = 1
 	}
 
-	tag.Tags["Pos"] = &nbt.List{nbt.TagDouble, []nbt.ITag{
+	tag["Pos"] = &nbt.List{nbt.TagDouble, []nbt.ITag{
 		&nbt.Double{float64(obj.position.X)},
 		&nbt.Double{float64(obj.position.Y)},
 		&nbt.Double{float64(obj.position.Z)},
 	}}
 
-	tag.Tags["Motion"] = &nbt.List{nbt.TagDouble, []nbt.ITag{
+	tag["Motion"] = &nbt.List{nbt.TagDouble, []nbt.ITag{
 		&nbt.Double{float64(obj.velocity.X)},
 		&nbt.Double{float64(obj.velocity.Y)},
 		&nbt.Double{float64(obj.velocity.Z)},
 	}}
 
-	tag.Tags["OnGround"] = &nbt.Byte{onGround}
+	tag["OnGround"] = &nbt.Byte{onGround}
 
 	return nil
 }

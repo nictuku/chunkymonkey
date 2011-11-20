@@ -123,7 +123,7 @@ func (world *WorldStore) ChunkStoreForDimension(dimension DimensionId) (store ch
 	return
 }
 
-func (world *WorldStore) PlayerData(user string) (playerData *nbt.Compound, err os.Error) {
+func (world *WorldStore) PlayerData(user string) (playerData nbt.Compound, err os.Error) {
 	file, err := os.Open(path.Join(world.WorldPath, "players", user+".dat"))
 	if err != nil {
 		if errno, ok := util.Errno(err); ok && errno == os.ENOENT {
@@ -146,7 +146,7 @@ func (world *WorldStore) PlayerData(user string) (playerData *nbt.Compound, err 
 	return
 }
 
-func (world *WorldStore) WritePlayerData(user string, data *nbt.Compound) (err os.Error) {
+func (world *WorldStore) WritePlayerData(user string, data nbt.Compound) (err os.Error) {
 	playerDir := path.Join(world.WorldPath, "players")
 	if err = os.MkdirAll(playerDir, 0777); err != nil {
 		return
@@ -175,25 +175,21 @@ func CreateWorld(worldPath string) (err os.Error) {
 	source := rand.NewSource(time.Nanoseconds())
 	seed := source.Int63()
 
-	data := &nbt.Compound{
-		map[string]nbt.ITag{
-			"Data": &nbt.Compound{
-				map[string]nbt.ITag{
-					"Time":        &nbt.Long{0},
-					"rainTime":    &nbt.Int{0},
-					"thunderTime": &nbt.Int{0},
-					"version":     &nbt.Int{19132}, // TODO: What should this be?
-					"thundering":  &nbt.Byte{0},
-					"raining":     &nbt.Byte{0},
-					"LevelName":   &nbt.String{"world"}, // TODO: Should be specifyable
-					"SpawnX":      &nbt.Int{0},          // TODO: Figure this out from chunk generator?
-					"SpawnY":      &nbt.Int{75},         // TODO: Figure this out from chunk generator?
-					"SpawnZ":      &nbt.Int{0},          // TODO: Figure this out from chunk generator?
-					"LastPlayed":  &nbt.Long{0},
-					"SizeOnDisk":  &nbt.Long{0}, // Needs to be accurate?
-					"RandomSeed":  &nbt.Long{seed},
-				},
-			},
+	data := nbt.Compound{
+		"Data": nbt.Compound{
+			"Time":        &nbt.Long{0},
+			"rainTime":    &nbt.Int{0},
+			"thunderTime": &nbt.Int{0},
+			"version":     &nbt.Int{19132}, // TODO: What should this be?
+			"thundering":  &nbt.Byte{0},
+			"raining":     &nbt.Byte{0},
+			"LevelName":   &nbt.String{"world"}, // TODO: Should be specifyable
+			"SpawnX":      &nbt.Int{0},          // TODO: Figure this out from chunk generator?
+			"SpawnY":      &nbt.Int{75},         // TODO: Figure this out from chunk generator?
+			"SpawnZ":      &nbt.Int{0},          // TODO: Figure this out from chunk generator?
+			"LastPlayed":  &nbt.Long{0},
+			"SizeOnDisk":  &nbt.Long{0}, // Needs to be accurate?
+			"RandomSeed":  &nbt.Long{seed},
 		},
 	}
 

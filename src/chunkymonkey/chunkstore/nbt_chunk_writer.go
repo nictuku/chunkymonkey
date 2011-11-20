@@ -18,13 +18,13 @@ type nbtChunkWriter struct {
 	loc ChunkXz
 
 	// The NBT structure created.
-	chunkTag *nbt.Compound
+	chunkTag nbt.Compound
 }
 
 func newNbtChunkWriter() *nbtChunkWriter {
 	return &nbtChunkWriter{
-		chunkTag: &nbt.Compound{map[string]nbt.ITag{
-			"Level": &nbt.Compound{map[string]nbt.ITag{
+		chunkTag: nbt.Compound{
+			"Level": nbt.Compound{
 				"Entities":         &nbt.List{nbt.TagCompound, nil},
 				"TileEntities":     &nbt.List{nbt.TagCompound, nil},
 				"Blocks":           &nbt.ByteArray{},
@@ -36,8 +36,8 @@ func newNbtChunkWriter() *nbtChunkWriter {
 				"TerrainPopulated": &nbt.Byte{1}, // TODO
 				"xPos":             &nbt.Int{0},
 				"zPos":             &nbt.Int{0},
-			}},
-		}},
+			},
+		},
 	}
 }
 
@@ -101,6 +101,6 @@ func (w *nbtChunkWriter) SetTileEntities(tileEntities map[BlockIndex]gamerules.I
 	w.chunkTag.Lookup("Level/TileEntities").(*nbt.List).Value = tileEntitiesNbt
 }
 
-func (w *nbtChunkWriter) RootTag() *nbt.Compound {
+func (w *nbtChunkWriter) RootTag() nbt.Compound {
 	return w.chunkTag
 }

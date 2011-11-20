@@ -7,19 +7,17 @@
 //
 // An NBT data structure can be created with code such as the following:
 //
-//   root := &Compound{
-//     map[string]ITag{
-//       "Data": &Compound{
-//         map[string]ITag{
-//           "Byte":   &Byte{1},
-//           "Short":  &Short{2},
-//           "Int":    &Int{3},
-//           "Long":   &Long{4},
-//           "Float":  &Float{5},
-//           "Double": &Double{6},
-//           "String": &String{"foo"},
-//           "List":   &List{TagByte, []ITag{&Byte{1}, &Byte{2}}},
-//         },
+//   root := Compound{
+//     "Data": Compound{
+//       map[string]ITag{
+//         "Byte":   &Byte{1},
+//         "Short":  &Short{2},
+//         "Int":    &Int{3},
+//         "Long":   &Long{4},
+//         "Float":  &Float{5},
+//         "Double": &Double{6},
+//         "String": &String{"foo"},
+//         "List":   &List{TagByte, []ITag{&Byte{1}, &Byte{2}}},
 //       },
 //     },
 //   }
@@ -89,7 +87,7 @@ func (tt TagType) NewTag() (tag ITag, err os.Error) {
 	case TagList:
 		tag = new(List)
 	case TagCompound:
-		tag = new(Compound)
+		tag = make(Compound)
 	default:
 		err = fmt.Errorf("invalid NBT tag type %#x", tt)
 	}
@@ -408,27 +406,23 @@ func (*List) Lookup(path string) ITag {
 	return nil
 }
 
-type Compound struct {
-	Tags map[string]ITag
-}
+type Compound map[string]ITag
 
-func (c *Compound) String() string {
-	subStrs := make([]string, len(c.Tags))
+func (c Compound) String() string {
+	subStrs := make([]string, len(c))
 	i := 0
-	for k, v := range c.Tags {
+	for k, v := range c {
 		subStrs[i] = fmt.Sprintf("%q: %s", k, v)
 		i++
 	}
 	return fmt.Sprintf("Compound(%s)", strings.Join(subStrs, ", "))
 }
 
-func NewCompound() *Compound {
-	return &Compound{
-		Tags: make(map[string]ITag),
-	}
+func NewCompound() Compound {
+	return make(Compound)
 }
 
-func (*Compound) Type() TagType {
+func (Compound) Type() TagType {
 	return TagCompound
 }
 
@@ -457,8 +451,7 @@ func readTagAndName(reader io.Reader) (tag ITag, name string, err os.Error) {
 	return
 }
 
-func (c *Compound) Read(reader io.Reader) (err os.Error) {
-	tags := make(map[string]ITag)
+func (c Compound) Read(reader io.Reader) (err os.Error) {
 	var tag ITag
 	var tagName string
 
@@ -471,10 +464,9 @@ func (c *Compound) Read(reader io.Reader) (err os.Error) {
 			break
 		}
 
-		tags[tagName] = tag
+		c[tagName] = tag
 	}
 
-	c.Tags = tags
 	return
 }
 
@@ -493,8 +485,8 @@ func writeTagAndName(writer io.Writer, tag ITag, name string) (err os.Error) {
 	return
 }
 
-func (c *Compound) Write(writer io.Writer) (err os.Error) {
-	for name, tag := range c.Tags {
+func (c Compound) Write(writer io.Writer) (err os.Error) {
+	for name, tag := range c {
 		if err = writeTagAndName(writer, tag, name); err != nil {
 			return
 		}
@@ -505,9 +497,9 @@ func (c *Compound) Write(writer io.Writer) (err os.Error) {
 	return
 }
 
-func (c *Compound) Lookup(path string) (tag ITag) {
+func (c Compound) Lookup(path string) (tag ITag) {
 	components := strings.SplitN(path, "/", 2)
-	tag, ok := c.Tags[components[0]]
+	tag, ok := c[components[0]]
 	if !ok {
 		return nil
 	}
@@ -519,12 +511,12 @@ func (c *Compound) Lookup(path string) (tag ITag) {
 	return tag
 }
 
-func (c *Compound) Set(key string, tag ITag) {
-	c.Tags[key] = tag
+func (c Compound) Set(key string, tag ITag) {
+	c[key] = tag
 }
 
 // Read reads an NBT compound from the given reader.
-func Read(reader io.Reader) (tag *Compound, err os.Error) {
+func Read(reader io.Reader) (tag Compound, err os.Error) {
 	var itag ITag
 	var name string
 	if itag, name, err = readTagAndName(reader); err != nil {
@@ -537,7 +529,7 @@ func Read(reader io.Reader) (tag *Compound, err os.Error) {
 		return nil, os.NewError("end tag found at top level")
 	}
 
-	tag, ok := itag.(*Compound)
+	tag, ok := itag.(Compound)
 	if !ok {
 		return nil, os.NewError("expected compound at top level")
 	}
@@ -546,6 +538,6 @@ func Read(reader io.Reader) (tag *Compound, err os.Error) {
 }
 
 // Write writes an NBT compound to the given writer.
-func Write(writer io.Writer, tag *Compound) (err os.Error) {
+func Write(writer io.Writer, tag Compound) (err os.Error) {
 	return writeTagAndName(writer, tag, "")
 }

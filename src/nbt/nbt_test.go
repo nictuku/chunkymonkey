@@ -79,10 +79,8 @@ func TestSerialization(t *testing.T) {
 				te.LiteralString("\x01\x00\x03foo\x01"), // NamedTag "foo" Byte{1}
 				te.LiteralString("\x00"),                // End
 			),
-			&Compound{
-				map[string]ITag{
-					"foo": &Byte{1},
-				},
+			Compound{
+				"foo": &Byte{1},
 			},
 		},
 		{
@@ -108,17 +106,15 @@ func TestSerialization(t *testing.T) {
 				),
 				te.LiteralString("\x00"), // End
 			),
-			&Compound{
-				map[string]ITag{
-					"Byte":   &Byte{1},
-					"Short":  &Short{2},
-					"Int":    &Int{3},
-					"Long":   &Long{4},
-					"Float":  &Float{5},
-					"Double": &Double{6},
-					"String": &String{"foo"},
-					"List":   &List{TagByte, []ITag{&Byte{1}, &Byte{2}}},
-				},
+			Compound{
+				"Byte":   &Byte{1},
+				"Short":  &Short{2},
+				"Int":    &Int{3},
+				"Long":   &Long{4},
+				"Float":  &Float{5},
+				"Double": &Double{6},
+				"String": &String{"foo"},
+				"List":   &List{TagByte, []ITag{&Byte{1}, &Byte{2}}},
 			},
 		},
 	}
@@ -130,13 +126,9 @@ func TestSerialization(t *testing.T) {
 }
 
 func Test_ReadAndWrite(t *testing.T) {
-	compound := &Compound{
-		map[string]ITag{
-			"Data": &Compound{
-				map[string]ITag{
-					"Byte": &Byte{5},
-				},
-			},
+	compound := Compound{
+		"Data": Compound{
+			"Byte": &Byte{5},
 		},
 	}
 
@@ -171,20 +163,16 @@ func Test_ReadAndWrite(t *testing.T) {
 }
 
 func Test_Lookup(t *testing.T) {
-	root := &Compound{
-		map[string]ITag{
-			"Data": &Compound{
-				map[string]ITag{
-					"Byte":   &Byte{1},
-					"Short":  &Short{2},
-					"Int":    &Int{3},
-					"Long":   &Long{4},
-					"Float":  &Float{5},
-					"Double": &Double{6},
-					"String": &String{"foo"},
-					"List":   &List{TagByte, []ITag{&Byte{1}, &Byte{2}}},
-				},
-			},
+	root := Compound{
+		"Data": Compound{
+			"Byte":   &Byte{1},
+			"Short":  &Short{2},
+			"Int":    &Int{3},
+			"Long":   &Long{4},
+			"Float":  &Float{5},
+			"Double": &Double{6},
+			"String": &String{"foo"},
+			"List":   &List{TagByte, []ITag{&Byte{1}, &Byte{2}}},
 		},
 	}
 
@@ -193,7 +181,7 @@ func Test_Lookup(t *testing.T) {
 
 	// Absolute lookup from root.
 	tag = root.Lookup("Data")
-	if _, ok = tag.(*Compound); !ok {
+	if _, ok = tag.(Compound); !ok {
 		t.Fatalf("Failed to look up /Data Compound, got: %#v", tag)
 	}
 

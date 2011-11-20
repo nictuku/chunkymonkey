@@ -26,9 +26,9 @@ type IInventory interface {
 	MakeProtoSlots() proto.ItemSlotSlice
 	GetProtoSlots(slots proto.ItemSlotSlice)
 	TakeAllItems() (items []Slot)
-	UnmarshalNbt(tag *nbt.Compound) (err os.Error)
-	MarshalNbt(tag *nbt.Compound) (err os.Error)
-	SlotUnmarshalNbt(tag *nbt.Compound, slotId SlotId) (err os.Error)
+	UnmarshalNbt(tag nbt.Compound) (err os.Error)
+	MarshalNbt(tag nbt.Compound) (err os.Error)
+	SlotUnmarshalNbt(tag nbt.Compound, slotId SlotId) (err os.Error)
 }
 
 type Click struct {
@@ -219,14 +219,14 @@ func (inv *Inventory) slotUpdate(slot *Slot, slotId SlotId) {
 	}
 }
 
-func (inv *Inventory) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (inv *Inventory) UnmarshalNbt(tag nbt.Compound) (err os.Error) {
 	itemList, ok := tag.Lookup("Items").(*nbt.List)
 	if !ok {
 		return os.NewError("bad inventory - not a list")
 	}
 
 	for _, slotTagITag := range itemList.Value {
-		slotTag, ok := slotTagITag.(*nbt.Compound)
+		slotTag, ok := slotTagITag.(nbt.Compound)
 		if !ok {
 			return os.NewError("inventory slot not a compound")
 		}
@@ -245,7 +245,7 @@ func (inv *Inventory) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
 	return nil
 }
 
-func (inv *Inventory) MarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (inv *Inventory) MarshalNbt(tag nbt.Compound) (err os.Error) {
 	occupiedSlots := 0
 	for i := range inv.slots {
 		if inv.slots[i].Count > 0 {
@@ -271,7 +271,7 @@ func (inv *Inventory) MarshalNbt(tag *nbt.Compound) (err os.Error) {
 	return nil
 }
 
-func (inv *Inventory) SlotUnmarshalNbt(tag *nbt.Compound, slotId SlotId) (err os.Error) {
+func (inv *Inventory) SlotUnmarshalNbt(tag nbt.Compound, slotId SlotId) (err os.Error) {
 	if slotId < 0 || int(slotId) >= len(inv.slots) {
 		return fmt.Errorf("Bad slot ID %d (max slot=%d)", slotId, len(inv.slots)-1)
 	}

@@ -30,7 +30,7 @@ func NewObject(objType ObjTypeId) (object *Object) {
 	return
 }
 
-func (object *Object) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (object *Object) UnmarshalNbt(tag nbt.Compound) (err os.Error) {
 	if err = object.PointObject.UnmarshalNbt(tag); err != nil {
 		return
 	}
@@ -52,7 +52,7 @@ func (object *Object) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
 	return
 }
 
-func (object *Object) MarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (object *Object) MarshalNbt(tag nbt.Compound) (err os.Error) {
 	objTypeName, ok := ObjNameByType[object.ObjTypeId]
 	if !ok {
 		return os.NewError("unknown object type")

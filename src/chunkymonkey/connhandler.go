@@ -200,7 +200,7 @@ func (l *pktHandler) handleLogin(pktHandshake *proto.PacketHandshake) (err, clie
 
 	entityId := l.gameInfo.entityManager.NewEntity()
 
-	var playerData *nbt.Compound
+	var playerData nbt.Compound
 	if playerData, err = l.gameInfo.game.worldStore.PlayerData(username); err != nil {
 		clientErr = clientErrUserData
 		return

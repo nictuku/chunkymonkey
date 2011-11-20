@@ -64,7 +64,7 @@ func (r *nbtChunkReader) Entities() (entities []gamerules.INonPlayerEntity) {
 
 	entities = make([]gamerules.INonPlayerEntity, 0, len(entityListTag.Value))
 	for _, tag := range entityListTag.Value {
-		compound, ok := tag.(*nbt.Compound)
+		compound, ok := tag.(nbt.Compound)
 		if !ok {
 			log.Printf("Found non-compound in entities list: %T", tag)
 			continue
@@ -102,7 +102,7 @@ func (r *nbtChunkReader) TileEntities() (tileEntities []gamerules.ITileEntity) {
 
 	tileEntities = make([]gamerules.ITileEntity, 0, len(entityListTag.Value))
 	for _, tag := range entityListTag.Value {
-		compound, ok := tag.(*nbt.Compound)
+		compound, ok := tag.(nbt.Compound)
 		if !ok {
 			log.Printf("Found non-compound in tile entities list: %T", tag)
 			continue

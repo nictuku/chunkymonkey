@@ -277,7 +277,7 @@ func (s *Slot) Decrement() (changed bool) {
 	return
 }
 
-func (s *Slot) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (s *Slot) UnmarshalNbt(tag nbt.Compound) (err os.Error) {
 	var ok bool
 	var idTag, damageTag *nbt.Short
 	var countTag *nbt.Byte
@@ -299,7 +299,7 @@ func (s *Slot) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
 	return
 }
 
-func (s *Slot) MarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (s *Slot) MarshalNbt(tag nbt.Compound) (err os.Error) {
 	tag.Set("id", &nbt.Short{int16(s.ItemTypeId)})
 	tag.Set("Count", &nbt.Byte{int8(s.Count)})
 	tag.Set("Damage", &nbt.Short{int16(s.Data)})

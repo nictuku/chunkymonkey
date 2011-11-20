@@ -173,7 +173,7 @@ func (player *Player) Look() LookDegrees {
 
 // UnmarshalNbt unpacks the player data from their persistantly stored NBT
 // data. It must only be called before Player.Run().
-func (player *Player) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (player *Player) UnmarshalNbt(tag nbt.Compound) (err os.Error) {
 	if player.position, err = nbtutil.ReadAbsXyz(tag, "Pos"); err != nil {
 		return
 	}
@@ -241,7 +241,7 @@ func (player *Player) UnmarshalNbt(tag *nbt.Compound) (err os.Error) {
 
 // MarshalNbt packs the player data into a nbt.Compound so it can be written to
 // persistant storage.
-func (player *Player) MarshalNbt(tag *nbt.Compound) (err os.Error) {
+func (player *Player) MarshalNbt(tag nbt.Compound) (err os.Error) {
 	if err = player.inventory.MarshalNbt(tag); err != nil {
 		return
 	}
