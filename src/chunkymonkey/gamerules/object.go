@@ -104,6 +104,10 @@ func NewPoweredCart() INonPlayerEntity {
 	return NewObject(ObjTypeIdPoweredCart)
 }
 
+func NewEnderCrystal() INonPlayerEntity {
+	return NewObject(ObjTypeIdEnderCrystal)
+}
+
 func NewActivatedTnt() INonPlayerEntity {
 	return NewObject(ObjTypeIdActivatedTnt)
 }

@@ -188,6 +188,7 @@ const (
 	ObjTypeIdStorageCart    = ObjTypeId(11)
 	ObjTypeIdPoweredCart    = ObjTypeId(12)
 	ObjTypeIdActivatedTnt   = ObjTypeId(50)
+	ObjTypeIdEnderCrystal   = ObjTypeId(51)
 	ObjTypeIdArrow          = ObjTypeId(60)
 	ObjTypeIdThrownSnowball = ObjTypeId(61)
 	ObjTypeIdThrownEgg      = ObjTypeId(62)
@@ -202,6 +203,7 @@ var ObjTypeByName = map[string]ObjTypeId{
 	"StorageCart":    ObjTypeIdStorageCart,
 	"PoweredCart":    ObjTypeIdPoweredCart,
 	"ActivatedTnt":   ObjTypeIdActivatedTnt,
+	"EnderCrystal":   ObjTypeIdEnderCrystal,
 	"Arrow":          ObjTypeIdArrow,
 	"ThrownSnowball": ObjTypeIdThrownSnowball,
 	"ThrownEgg":      ObjTypeIdThrownEgg,
