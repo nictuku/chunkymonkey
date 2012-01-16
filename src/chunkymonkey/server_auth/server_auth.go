@@ -1,6 +1,7 @@
 package server_auth
 
 import (
+	"bufio"
 	"expvar"
 	"http"
 	"os"
@@ -9,22 +10,21 @@ import (
 )
 
 var (
-	expVarServerAuthSuccessCount *expvar.Int
-	expVarServerAuthFailCount    *expvar.Int
-	expVarServerAuthTimeNs       *expvar.Int
+	expVarServerAuthSuccessCount = expvar.NewInt("server-auth-success-count")
+	expVarServerAuthFailCount    = expvar.NewInt("server-auth-fail-count")
+	expVarServerAuthTimeNs       = expvar.NewInt("server-auth-time-ns")
 )
 
-func init() {
-	expVarServerAuthSuccessCount = expvar.NewInt("server-auth-success-count")
-	expVarServerAuthFailCount = expvar.NewInt("server-auth-fail-count")
-	expVarServerAuthTimeNs = expvar.NewInt("server-auth-time-ns")
-}
+var (
+	HttpResponseError     = os.NewError("HTTP response error")
+	ResponseTooLargeError = os.NewError("HTTP response too large")
+)
 
-// An IAuthenticator takes a sessionId and a user string and attempts to
+// An IAuthenticator takes a sessionId and a username string and attempts to
 // authenticate against a server. This interface allows for the use of a dummy
 // authentication server for testing purposes.
 type IAuthenticator interface {
-	Authenticate(sessionId, user string) (ok bool, err os.Error)
+	Authenticate(sessionId, username string) (ok bool, err os.Error)
 }
 
 // DummyAuth is a no-op authentication server, always returning the value of
@@ -34,36 +34,35 @@ type DummyAuth struct {
 }
 
 // Authenticate implements the IAuthenticator.Authenticate method
-func (d *DummyAuth) Authenticate(sessionId, user string) (authenticated bool, err os.Error) {
+func (d *DummyAuth) Authenticate(sessionId, username string) (authenticated bool, err os.Error) {
 	return d.Result, nil
 }
 
 // ServerAuth represents authentication against a server, particularly the
 // main minecraft server at http://www.minecraft.net/game/checkserver.jsp.
 type ServerAuth struct {
-	serverId string
-	baseUrl  url.URL
+	baseUrl url.URL
 }
 
-func NewServerAuth(serverId, baseUrlStr string) (s *ServerAuth, err os.Error) {
+func NewServerAuth(baseUrlStr string) (s *ServerAuth, err os.Error) {
 	baseUrl, err := url.Parse(baseUrlStr)
 	if err != nil {
 		return
 	}
 	s = &ServerAuth{
-		serverId: serverId,
-		baseUrl:  *baseUrl,
+		baseUrl: *baseUrl,
 	}
 	return
 }
 
-// Build a URL+query string based on a given server URL, serverId and user
-// input
-func (s *ServerAuth) buildQuery(sessionId, user string) (query string) {
+// buildQuery builds a URL+query string based on a given sessionId and username
+// input.
+func (s *ServerAuth) buildQuery(sessionId, username string) (query string) {
 	queryValues := url.Values{
-		"serverId":  {s.serverId},
-		"sessionId": {sessionId},
-		"user":      {user},
+		// Despite it being called "serverId" in the HTTP request, it actually is a
+		// per-connection ID.
+		"serverId": {sessionId},
+		"user":     {username},
 	}
 
 	queryUrl := s.baseUrl
@@ -73,7 +72,7 @@ func (s *ServerAuth) buildQuery(sessionId, user string) (query string) {
 }
 
 // Authenticate implements the IAuthenticator.Authenticate method
-func (s *ServerAuth) Authenticate(sessionId, user string) (authenticated bool, err os.Error) {
+func (s *ServerAuth) Authenticate(sessionId, username string) (authenticated bool, err os.Error) {
 	before := time.Nanoseconds()
 	defer func() {
 		after := time.Nanoseconds()
@@ -87,31 +86,28 @@ func (s *ServerAuth) Authenticate(sessionId, user string) (authenticated bool, e
 
 	authenticated = false
 
-	url_ := s.buildQuery(sessionId, user)
+	url_ := s.buildQuery(sessionId, username)
 
 	response, err := http.Get(url_)
 	if err != nil {
-		return
+		return false, err
 	}
 
 	if response.StatusCode == 200 {
-		// We only need to read up to 3 bytes for "YES" or "NO"
-		buf := make([]byte, 3)
-		bufferPos := 0
-		var numBytesRead int
+		lineReader := bufio.NewReader(response.Body)
 
-		for err == nil && bufferPos < 3 {
-			numBytesRead, err = response.Body.Read(buf[bufferPos:])
-			if err != nil && err != os.EOF {
-				return
+		for {
+			line, isPrefix, err := lineReader.ReadLine()
+			if err != nil {
+				return false, err
+			} else if isPrefix {
+				return false, ResponseTooLargeError
+			} else if string(line) == "YES" {
+				return true, nil
 			}
-			bufferPos += numBytesRead
 		}
-
-		result := string(buf[0:bufferPos])
-		authenticated = (result == "YES")
 	} else {
-		return
+		return false, HttpResponseError
 	}
 
 	return

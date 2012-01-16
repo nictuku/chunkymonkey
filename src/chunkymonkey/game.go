@@ -1,11 +1,9 @@
 package chunkymonkey
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
-	"rand"
 	"regexp"
 	"time"
 
@@ -43,7 +41,6 @@ type Game struct {
 
 	// Server information
 	time           Ticks
-	serverId       string
 	maintenanceMsg string // if set, logins are disallowed.
 }
 
@@ -70,8 +67,7 @@ func NewGame(worldPath string, listener net.Listener, serverDesc, maintenanceMsg
 	// TODO: Load the prefix from a config file
 	gamerules.CommandFramework = command.NewCommandFramework("/")
 
-	game.serverId = fmt.Sprintf("%08x", rand.NewSource(worldStore.Seed).Int63())
-	authserver, err := server_auth.NewServerAuth(game.serverId, "http://www.minecraft.net/game/checkserver.jsp")
+	authserver, err := server_auth.NewServerAuth("http://session.minecraft.net/game/checkserver.jsp")
 	if err != nil {
 		return
 	}

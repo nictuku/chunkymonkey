@@ -17,8 +17,6 @@ import (
 	"nbt"
 )
 
-// TODO Refactor this more simply after a good re-working of the chunkymonkey/proto package.
-
 const (
 	connTypeUnknown = iota
 	connTypeLogin
@@ -171,11 +169,16 @@ func (l *pktHandler) handleLogin(pktHandshake *proto.PacketHandshake) (err, clie
 		return
 	}
 
-	sessionId := fmt.Sprintf("%08x", rand.Int63())
+	sessionId := fmt.Sprintf("%016x", rand.Int63())
 	log.Printf("Player %q has sessionId %s", username, sessionId)
 
 	if err = l.ps.WritePacket(l.conn, &proto.PacketHandshake{sessionId}); err != nil {
 		clientErr = clientErrHandshake
+		return
+	}
+
+	if _, err = l.ps.ReadPacketExpect(l.conn, true, 0x01); err != nil {
+		clientErr = clientErrLoginGeneral
 		return
 	}
 
@@ -192,11 +195,6 @@ func (l *pktHandler) handleLogin(pktHandshake *proto.PacketHandshake) (err, clie
 		return
 	}
 	log.Print("Client ", l.conn.RemoteAddr(), " passed minecraft.net authentication")
-
-	if _, err = l.ps.ReadPacketExpect(l.conn, true, 0x01); err != nil {
-		clientErr = clientErrLoginGeneral
-		return
-	}
 
 	entityId := l.gameInfo.entityManager.NewEntity()
 
