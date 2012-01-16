@@ -53,6 +53,7 @@ func Test_PacketLogin(t *testing.T) {
 			VersionOrEntityId: 5,
 			Username:          "username",
 			MapSeed:           123,
+			LevelType:         "DEFAULT",
 			GameMode:          1,
 			Dimension:         DimensionNormal,
 			Difficulty:        GameDifficultyNormal,
@@ -63,6 +64,7 @@ func Test_PacketLogin(t *testing.T) {
 			"\x00\x00\x00\x05"+ // Version/EntityID
 			"\x00\x08\x00u\x00s\x00e\x00r\x00n\x00a\x00m\x00e"+ // Username
 			"\x00\x00\x00\x00\x00\x00\x00\x7b"+ // MapSeed
+			"\x00\x07\x00D\x00E\x00F\x00A\x00U\x00L\x00T"+ // LevelType
 			"\x00\x00\x00\x01"+ // GameMode
 			"\x00"+ // Dimension
 			"\x02"+ // Difficulty
@@ -259,8 +261,8 @@ func Test_PacketPlayerBlockInteract(t *testing.T) {
 			// TODO This really should use gzip library to read the output data.
 			// Literal is somewhat fragile to underlying harmless changes.
 			"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\xe2\x62\x60\xe0\x64\x60\x49\xcd"+
-			"\x4b\xce\x00\xb2\x18\x18\x99\x18\x98\x32\x53\x18\x98\x99\x18\x98\x73\xca"+
-			"\x72\x18\x98\x18\x18\x00\x01\x00\x00\xff\xff\x8f\xa2\x1f\x16\x20\x00\x00"+
+			"\x4b\xce\x00\xb2\x18\x18\x99\x18\x98\x73\xca\x72\x18\x98\x98\x18\x98\x32"+
+			"\x53\x18\x98\x19\x18\x00\x01\x00\x00\xff\xff\x76\xca\x64\xf3\x20\x00\x00"+
 			"\x00"),
 	)
 }
@@ -429,6 +431,21 @@ func Test_PacketObjectSpawn(t *testing.T) {
 			"\x00\x00\x00\x03"+
 			"\x00\x00\x00\x14"+
 			"\x00\x04\x00\x05\x00\x06"),
+	)
+}
+
+func Test_PacketPluginMessage(t *testing.T) {
+	testPacketSerial(
+		t,
+		false,
+		&PacketPluginMessage{
+			Channel: "chan",
+			Data:    []byte{1, 2, 3, 4, 5},
+		},
+		te.LiteralString("\xfa"+
+			"\x00\x04\x00c\x00h\x00a\x00n"+
+			"\x00\x05"+
+			"\x01\x02\x03\x04\x05"),
 	)
 }
 

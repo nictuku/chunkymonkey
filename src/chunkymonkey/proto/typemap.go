@@ -94,6 +94,7 @@ var pktDefns = []struct {
 	{0x83, false, true, &PacketItemData{}},
 	{0xc8, false, true, &PacketIncrementStatistic{}},
 	{0xc9, false, true, &PacketPlayerListItem{}},
+	{0xfa, true, true, &PacketPluginMessage{}},
 	{0xfe, true, false, &PacketServerListPing{}},
 	{0xff, true, true, &PacketDisconnect{}},
 }

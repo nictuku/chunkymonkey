@@ -285,13 +285,20 @@ func (player *Player) getHeldItemTypeId() ItemTypeId {
 }
 
 func (player *Player) Run() {
-	// TODO pass proper dimension. This is low priority, because we don't yet
-	// support multiple dimensions.
-	// TODO pass proper map seed.
-	// TODO pass proper values for the difficulty.
-	// TODO proper max number of players.
 	data := player.txPktSerial.SerializePackets(
-		&proto.PacketLogin{int32(player.EntityId), "", 0, 0, DimensionNormal, GameDifficultyNormal, MaxYCoord + 1, 8},
+		&proto.PacketLogin{
+			VersionOrEntityId: int32(player.EntityId),
+			Username:          "",
+			MapSeed:           0,         // TODO pass proper map seed.
+			LevelType:         "DEFAULT", // TODO proper level type
+			GameMode:          0,
+			// TODO pass proper dimension. This is low priority, because we don't yet
+			// support multiple dimensions.
+			Dimension:   DimensionNormal,
+			Difficulty:  GameDifficultyNormal, // TODO pass proper values for the difficulty.
+			WorldHeight: MaxYCoord + 1,
+			MaxPlayers:  8, // TODO proper max number of players.
+		},
 		&proto.PacketSpawnPosition{player.spawnBlock.X, int32(player.spawnBlock.Y), player.spawnBlock.Z},
 	)
 

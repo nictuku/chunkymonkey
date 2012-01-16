@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"io"
 	"log"
+	"math"
 	"os"
 	"reflect"
 
@@ -16,7 +17,7 @@ import (
 
 const (
 	// Currently only this protocol version is supported.
-	protocolVersion = 22
+	protocolVersion = 23
 
 	maxUcs2Char  = 0xffff
 	ucs2ReplChar = 0xfffd
@@ -64,6 +65,7 @@ type PacketLogin struct {
 	VersionOrEntityId int32
 	Username          string
 	MapSeed           RandomSeed
+	LevelType         string
 	GameMode          int32
 	Dimension         DimensionId
 	Difficulty        GameDifficulty
@@ -130,6 +132,7 @@ type PacketRespawn struct {
 	GameType    GameType
 	WorldHeight int16
 	MapSeed     RandomSeed
+	LevelType   string
 }
 
 func (*PacketRespawn) IsPacket() {}
@@ -569,6 +572,50 @@ type PacketIncrementStatistic struct {
 }
 
 func (*PacketIncrementStatistic) IsPacket() {}
+
+type PacketPluginMessage struct {
+	Channel string
+	Data    []byte
+}
+
+func (*PacketPluginMessage) IsPacket() {}
+
+func (pkt *PacketPluginMessage) MinecraftUnmarshal(reader io.Reader, ps *PacketSerializer) (err os.Error) {
+	pkt.Channel, err = ps.readString16(reader)
+	if err != nil {
+		return
+	}
+
+	dataLength, err := ps.readUint16(reader)
+	if err != nil {
+		return
+	}
+
+	if dataLength > math.MaxInt16 {
+		return ErrorLengthNegative
+	}
+
+	pkt.Data = make([]byte, dataLength)
+	_, err = io.ReadFull(reader, pkt.Data)
+
+	return
+}
+
+func (pkt *PacketPluginMessage) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (err os.Error) {
+	err = ps.writeString16(writer, pkt.Channel)
+	if err != nil {
+		return
+	}
+
+	err = ps.writeUint16(writer, uint16(len(pkt.Data)))
+	if err != nil {
+		return
+	}
+
+	_, err = writer.Write(pkt.Data)
+
+	return
+}
 
 type PacketPlayerListItem struct {
 	Username string
