@@ -36,25 +36,23 @@ func (p *MessageParser) consumeUnrecognizedInput(reader io.Reader) {
 }
 
 type MessageParser struct {
-	logger *log.Logger
-	ps     proto.PacketSerializer
+	logger     *log.Logger
+	fromClient bool
+	ps         proto.PacketSerializer
+}
+
+func NewMessageParser(logger *log.Logger, fromClient bool) *MessageParser {
+	return &MessageParser{
+		logger:     logger,
+		fromClient: fromClient,
+	}
 }
 
 func (p *MessageParser) printf(format string, v ...interface{}) {
 	p.logger.Printf(format, v...)
 }
 
-// Parses messages from the client
-func (p *MessageParser) CsParse(reader io.Reader, logger *log.Logger) {
-	p.logPackets(reader, logger, true)
-}
-
-// Parses messages from the server
-func (p *MessageParser) ScParse(reader io.Reader, logger *log.Logger) {
-	p.logPackets(reader, logger, false)
-}
-
-func (p *MessageParser) logPackets(reader io.Reader, logger *log.Logger, fromClient bool) {
+func (p *MessageParser) Parse(reader io.Reader) {
 	// If we return, we should consume all input to avoid blocking the pipe
 	// we're listening on. TODO Maybe we could just close it?
 	defer p.consumeUnrecognizedInput(reader)
@@ -66,7 +64,7 @@ func (p *MessageParser) logPackets(reader io.Reader, logger *log.Logger, fromCli
 	}()
 
 	for {
-		pkt, err := p.ps.ReadPacket(reader, fromClient)
+		pkt, err := p.ps.ReadPacket(reader, p.fromClient)
 		if err != nil {
 			if err != os.EOF {
 				p.printf("ReceiveLoop failed: %v", err)

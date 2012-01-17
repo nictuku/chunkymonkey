@@ -70,19 +70,19 @@ func serveConn(clientConn net.Conn, remoteaddr string, connNumber int) {
 		}
 	}
 
-	clientParser := new(MessageParser)
-	serverParser := new(MessageParser)
+	clientParser := NewMessageParser(
+		log.New(os.Stderr, logPrefix+"(C->S) ", log.Ldate|log.Ltime|log.Lmicroseconds), true)
+	serverParser := NewMessageParser(
+		log.New(os.Stderr, logPrefix+"(S->C) ", log.Ldate|log.Ltime|log.Lmicroseconds), false)
 
 	// Set up for parsing messages from server to client
-	scLogger := log.New(os.Stderr, logPrefix+"(S->C) ", log.Ldate|log.Ltime|log.Lmicroseconds)
 	serverToClientReportChan := spliceParser(
-		func(reader io.Reader) { serverParser.ScParse(reader, scLogger) },
+		func(reader io.Reader) { serverParser.Parse(reader) },
 		clientConn, serverConn)
 
 	// Set up for parsing messages from client to server
-	csLogger := log.New(os.Stderr, logPrefix+"(C->S) ", log.Ldate|log.Ltime|log.Lmicroseconds)
 	clientToServerReportChan := spliceParser(
-		func(reader io.Reader) { clientParser.CsParse(reader, csLogger) },
+		func(reader io.Reader) { clientParser.Parse(reader) },
 		serverConn, clientReader)
 
 	// Wait for the both relay/splices to stop, then we let the connections
