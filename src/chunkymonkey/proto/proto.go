@@ -948,7 +948,8 @@ func (cd *ChunkData) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (e
 		return ErrorBadChunkDataSize
 	}
 
-	buf := bytes.NewBuffer(make([]byte, 0, 4096))
+	// Most compressed chunks will fit in 8K.
+	buf := bytes.NewBuffer(make([]byte, 0, 8192))
 	zWriter, err := zlib.NewWriter(buf)
 	if err != nil {
 		// The zWriter should not fail, as the underlying writer does not.
@@ -966,7 +967,10 @@ func (cd *ChunkData) MinecraftMarshal(writer io.Writer, ps *PacketSerializer) (e
 			panic(err)
 		}
 	}
-	zWriter.Close()
+	err = zWriter.Close()
+	if err != nil {
+		panic(err)
+	}
 
 	compressedBytes := buf.Bytes()
 	if err = ps.writeUint32(writer, uint32(len(compressedBytes))); err != nil {
