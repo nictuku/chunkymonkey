@@ -295,7 +295,7 @@ func (f Face) Dxyz() (dx BlockCoord, dy BlockYCoord, dz BlockCoord) {
 
 // SideFace - similar to Face, but doesn't include top and bottom
 // faces/directions, and has different IDs.
-type SideFace int8
+type SideFace int32
 
 const (
 	SideFaceEast  = SideFace(0)
