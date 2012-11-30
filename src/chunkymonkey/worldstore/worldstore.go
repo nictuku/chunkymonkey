@@ -15,7 +15,6 @@ import (
 	"chunkymonkey/chunkstore"
 	"chunkymonkey/generation"
 	. "chunkymonkey/types"
-	"chunkymonkey/util"
 	"nbt"
 )
 
@@ -70,7 +69,8 @@ func LoadWorldStore(worldPath string) (world *WorldStore, err error) {
 	if seedNbt, ok := levelData.Lookup("Data/RandomSeed").(*nbt.Long); ok {
 		seed = seedNbt.Value
 	} else {
-		seed = rand.NewSource(time.Now()).Int63()
+		t := time.Now().UnixNano()
+		seed = rand.New(rand.NewSource(t)).Int63()
 	}
 
 	chunkStores = append(chunkStores, chunkstore.NewChunkService(generation.NewTestGenerator(seed)))
@@ -127,7 +127,7 @@ func (world *WorldStore) ChunkStoreForDimension(dimension DimensionId) (store ch
 func (world *WorldStore) PlayerData(user string) (playerData nbt.Compound, err error) {
 	file, err := os.Open(path.Join(world.WorldPath, "players", user+".dat"))
 	if err != nil {
-		if errno, ok := util.Errno(err); ok && errno == os.ENOENT {
+		if os.IsNotExist(err) {
 			// Player data simply doesn't exist. Not an error, playerData = nil is
 			// the result.
 			return nil, nil
@@ -160,11 +160,7 @@ func (world *WorldStore) WritePlayerData(user string, data nbt.Compound) (err er
 	}
 	defer file.Close()
 
-	gzipWriter, err := gzip.NewWriter(file)
-	if err != nil {
-		return
-	}
-
+	gzipWriter := gzip.NewWriter(file)
 	err = nbt.Write(gzipWriter, data)
 	gzipWriter.Close()
 
@@ -173,8 +169,8 @@ func (world *WorldStore) WritePlayerData(user string, data nbt.Compound) (err er
 
 // Creates a new world at 'worldPath'
 func CreateWorld(worldPath string) (err error) {
-	source := rand.NewSource(time.Now())
-	seed := source.Int63()
+	t := time.Now().UnixNano()
+	seed := rand.New(rand.NewSource(t)).Int63()
 
 	data := nbt.Compound{
 		"Data": nbt.Compound{
@@ -204,10 +200,7 @@ func CreateWorld(worldPath string) (err error) {
 		return err
 	}
 
-	gzipWriter, err := gzip.NewWriter(file)
-	if err != nil {
-		return err
-	}
+	gzipWriter := gzip.NewWriter(file)
 
 	err = nbt.Write(gzipWriter, data)
 	gzipWriter.Close()
@@ -240,6 +233,6 @@ func absXyzFromNbt(tag nbt.ITag, path string) (pos AbsXyz, err error) {
 
 type BadType string
 
-func (err BadType) String() string {
+func (err BadType) Error() string {
 	return fmt.Sprintf("Bad type in level.dat for %s", string(err))
 }
